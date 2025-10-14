@@ -3,12 +3,18 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Navbar from './components/Navbar';
+import FirebaseSetupPrompt from './components/FirebaseSetupPrompt';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import StudentDashboard from './pages/StudentDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CourseView from './pages/CourseView';
+
+// Check if Firebase is configured
+const isFirebaseConfigured = import.meta.env.VITE_FIREBASE_API_KEY && 
+                              import.meta.env.VITE_FIREBASE_API_KEY !== "demo-api-key" &&
+                              import.meta.env.VITE_FIREBASE_API_KEY !== "YOUR_API_KEY";
 
 // Protected Route Component
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -32,6 +38,15 @@ function DashboardRouter() {
 }
 
 function App() {
+  // Show setup prompt if Firebase is not configured
+  if (!isFirebaseConfigured) {
+    return (
+      <LanguageProvider>
+        <FirebaseSetupPrompt />
+      </LanguageProvider>
+    );
+  }
+
   return (
     <Router>
       <LanguageProvider>
