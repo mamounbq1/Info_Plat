@@ -2,6 +2,44 @@
 
 Common issues and their solutions for the Moroccan Educational Platform.
 
+## 🚨 CSS @import Order Error
+
+### Problem
+You get this error when running `npm run dev`:
+
+```
+[vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+```
+
+### Root Cause
+The `@import` statement in `src/index.css` comes **after** the `@tailwind` directives. CSS requires `@import` to be at the top of the file.
+
+### ✅ Solution
+
+**Pull the latest fix:**
+```bash
+git pull origin main
+npm run dev
+```
+
+**Or manually fix** `src/index.css`:
+
+Move the Google Fonts import to the **top** of the file, before `@tailwind`:
+
+```css
+/* CORRECT ORDER */
+/* Arabic Font Support */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Rest of your CSS... */
+```
+
+---
+
 ## 🚨 Tailwind CSS / PostCSS Error
 
 ### Problem
