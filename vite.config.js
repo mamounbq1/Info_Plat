@@ -8,6 +8,9 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
-    allowedHosts: ['all'] // Allow all hosts for sandbox environments
+    hmr: {
+      clientPort: 443,
+      protocol: 'wss'
+    }
   }
 })
