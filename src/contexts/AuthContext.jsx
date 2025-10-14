@@ -7,7 +7,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth, db, isFirebaseConfigured } from '../config/firebase';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
@@ -20,6 +20,14 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // If Firebase is not configured, immediately set loading to false
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      setLoading(false);
+      return;
+    }
+  }, []);
 
   // Register new user
   async function signup(email, password, userData) {
@@ -96,6 +104,11 @@ export function AuthProvider({ children }) {
 
   // Listen to auth state changes
   useEffect(() => {
+    // Don't try to listen if Firebase is not configured
+    if (!isFirebaseConfigured || !auth) {
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
