@@ -73,50 +73,74 @@ export default function FileUpload({ onFilesUploaded, isArabic, maxFiles = 10 })
       const uploadedFiles = [];
 
       for (const file of selectedFiles) {
-        const fileName = `${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, `course-materials/${fileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        try {
+          const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+          const storageRef = ref(storage, `course-materials/${fileName}`);
+          
+          // Create upload task with resumable upload
+          const uploadTask = uploadBytesResumable(storageRef, file);
 
-        // Track upload progress
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(prev => ({ ...prev, [file.name]: progress }));
-          }
-        );
-
-        // Wait for upload to complete
-        await uploadTask;
-        const downloadURL = await getDownloadURL(storageRef);
-
-        uploadedFiles.push({
-          id: fileName,
-          name: file.name,
-          url: downloadURL,
-          type: file.type,
-          size: file.size,
-          storagePath: `course-materials/${fileName}`
-        });
+          // Track upload progress
+          await new Promise((resolve, reject) => {
+            uploadTask.on('state_changed', 
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(prev => ({ ...prev, [file.name]: progress }));
+              },
+              (error) => {
+                console.error('Upload error for file:', file.name, error);
+                reject(error);
+              },
+              async () => {
+                try {
+                  const downloadURL = await getDownloadURL(storageRef);
+                  uploadedFiles.push({
+                    id: fileName,
+                    name: file.name,
+                    url: downloadURL,
+                    type: file.type,
+                    size: file.size,
+                    storagePath: `course-materials/${fileName}`
+                  });
+                  resolve();
+                } catch (urlError) {
+                  console.error('Error getting download URL:', urlError);
+                  reject(urlError);
+                }
+              }
+            );
+          });
+        } catch (fileError) {
+          console.error(`Error uploading ${file.name}:`, fileError);
+          toast.error(
+            isArabic
+              ? `خطأ في رفع ${file.name}: ${fileError.message}`
+              : `Erreur pour ${file.name}: ${fileError.message}`
+          );
+        }
       }
 
-      setFiles(prev => [...prev, ...uploadedFiles]);
-      onFilesUploaded([...files, ...uploadedFiles]);
-      setUploadProgress({});
-      
-      toast.success(
-        isArabic
-          ? 'تم رفع الملفات بنجاح'
-          : 'Fichiers téléchargés avec succès'
-      );
+      if (uploadedFiles.length > 0) {
+        setFiles(prev => [...prev, ...uploadedFiles]);
+        onFilesUploaded([...files, ...uploadedFiles]);
+        setUploadProgress({});
+        
+        toast.success(
+          isArabic
+            ? `تم رفع ${uploadedFiles.length} ملف بنجاح`
+            : `${uploadedFiles.length} fichier(s) téléchargé(s) avec succès`
+        );
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(
         isArabic
-          ? 'خطأ في رفع الملفات'
-          : 'Erreur lors du téléchargement'
+          ? `خطأ في رفع الملفات: ${error.message}`
+          : `Erreur lors du téléchargement: ${error.message}`
       );
     } finally {
       setUploading(false);
+      setUploadProgress({});
     }
   };
 
