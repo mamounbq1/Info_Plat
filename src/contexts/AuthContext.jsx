@@ -4,7 +4,13 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendEmailVerification,
+  setPersistence,
+  browserSessionPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '../config/firebase';
@@ -34,6 +40,14 @@ export function AuthProvider({ children }) {
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
+      // Send email verification
+      try {
+        await sendEmailVerification(result.user);
+        toast.success('Email de vérification envoyé!');
+      } catch (verifyError) {
+        console.error('Email verification error:', verifyError);
+      }
+      
       // Create user profile in Firestore
       await setDoc(doc(db, 'users', result.user.uid), {
         email,
@@ -41,25 +55,123 @@ export function AuthProvider({ children }) {
         role: userData.role || 'student',
         createdAt: new Date().toISOString(),
         progress: {},
-        enrolledCourses: []
+        enrolledCourses: [],
+        emailVerified: false
       });
       
       toast.success('Compte créé avec succès!');
       return result;
     } catch (error) {
-      toast.error(error.message);
+      let errorMessage = 'Erreur lors de la création du compte';
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'Cet email est déjà utilisé';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Email invalide';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Mot de passe trop faible (min. 6 caractères)';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
+
+  // Send email verification
+  async function verifyEmail() {
+    try {
+      if (currentUser && !currentUser.emailVerified) {
+        await sendEmailVerification(currentUser);
+        toast.success('Email de vérification envoyé!');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'envoi de l\'email de vérification');
       throw error;
     }
   }
 
   // Login user
-  async function login(email, password) {
+  async function login(email, password, rememberMe = false) {
     try {
+      // Set persistence based on remember me
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      
       const result = await signInWithEmailAndPassword(auth, email, password);
       toast.success('Connexion réussie!');
       return result;
     } catch (error) {
-      toast.error('Email ou mot de passe incorrect');
+      let errorMessage = 'Email ou mot de passe incorrect';
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = 'Aucun utilisateur trouvé avec cet email';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Mot de passe incorrect';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Email invalide';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'Ce compte a été désactivé';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Trop de tentatives. Réessayez plus tard';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      throw error;
+    }
+  }
+
+  // Login with Google
+  async function loginWithGoogle() {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user profile exists in Firestore
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      
+      if (!userDoc.exists()) {
+        // Create user profile for new Google users
+        await setDoc(doc(db, 'users', result.user.uid), {
+          email: result.user.email,
+          fullName: result.user.displayName || 'User',
+          role: 'student',
+          createdAt: new Date().toISOString(),
+          progress: {},
+          enrolledCourses: [],
+          photoURL: result.user.photoURL
+        });
+      }
+      
+      toast.success('Connexion Google réussie!');
+      return result;
+    } catch (error) {
+      let errorMessage = 'Erreur lors de la connexion Google';
+      
+      switch (error.code) {
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'Connexion annulée';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = 'Popup bloquée par le navigateur';
+          break;
+        default:
+          errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   }
@@ -129,8 +241,10 @@ export function AuthProvider({ children }) {
     userProfile,
     signup,
     login,
+    loginWithGoogle,
     logout,
     resetPassword,
+    verifyEmail,
     isAdmin: userProfile?.role === 'admin',
     isStudent: userProfile?.role === 'student'
   };
