@@ -48,11 +48,18 @@ function ContactForm({ isArabic }) {
     try {
       setSending(true);
       
-      await addDoc(collection(db, 'messages'), {
+      const messageData = {
         ...formData,
         status: 'pending',
-        createdAt: new Date().toISOString()
-      });
+        createdAt: new Date().toISOString(),
+        timestamp: Date.now() // For real-time sorting
+      };
+      
+      console.log('📧 Sending contact message:', messageData);
+      
+      const docRef = await addDoc(collection(db, 'messages'), messageData);
+      
+      console.log('✅ Message sent successfully with ID:', docRef.id);
       
       toast.success(isArabic ? 'تم إرسال رسالتك بنجاح!' : 'Message envoyé avec succès!');
       
@@ -64,7 +71,8 @@ function ContactForm({ isArabic }) {
         message: ''
       });
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('❌ Error sending message:', error);
+      console.error('Error details:', error.message, error.code);
       toast.error(isArabic ? 'خطأ في إرسال الرسالة' : 'Erreur lors de l\'envoi du message');
     } finally {
       setSending(false);
