@@ -9,10 +9,14 @@ import {
   DocumentIcon, 
   PencilIcon,
   FolderIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  UsersIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
+import UserManagement from '../components/UserManagement';
+import Sidebar from '../components/Sidebar';
 
 const CATEGORIES = [
   { id: 'mathematics', fr: 'Mathématiques', ar: 'الرياضيات' },
@@ -34,6 +38,11 @@ export default function AdminDashboard() {
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'users'
+  
+  // Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [courseForm, setCourseForm] = useState({
     titleFr: '',
@@ -186,29 +195,74 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
+      
+      {/* Main Content */}
+      <div className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'}`}>
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {isArabic ? 'لوحة تحكم المدرس' : 'Tableau de bord Enseignant'}
+              <h1 className="text-3xl font-bold mb-2">
+                {isArabic ? 'لوحة تحكم المسؤول' : 'Tableau de bord Administrateur'}
               </h1>
-              <p className="text-gray-600">
-                {isArabic ? 'إدارة الدروس والمواد التعليمية' : 'Gérez vos cours et matériels pédagogiques'}
+              <p className="text-purple-100">
+                {isArabic ? 'إدارة كاملة للموقع والمستخدمين' : 'Gestion complète du site et des utilisateurs'}
               </p>
             </div>
+            {activeTab === 'courses' && (
+              <button
+                onClick={() => setShowCourseModal(true)}
+                className="bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-purple-50 transition flex items-center gap-2 shadow-md"
+              >
+                <PlusIcon className="w-5 h-5" />
+                {isArabic ? 'إضافة درس جديد' : 'Nouveau cours'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setShowCourseModal(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+              onClick={() => setActiveTab('courses')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition ${
+                activeTab === 'courses'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
             >
-              <PlusIcon className="w-5 h-5" />
-              {isArabic ? 'إضافة درس جديد' : 'Nouveau cours'}
+              <BookOpenIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'الدروس' : 'Cours'}
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition ${
+                activeTab === 'users'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
+            >
+              <UsersIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'المستخدمون' : 'Utilisateurs'}
             </button>
           </div>
         </div>
 
+        {/* Tab Content */}
+        {activeTab === 'users' ? (
+          <UserManagement />
+        ) : (
+          <>
         {/* Statistics */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-md p-6">
@@ -319,7 +373,8 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
+          </>
+        )}
 
       {/* Course Modal */}
       {showCourseModal && (
@@ -562,6 +617,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

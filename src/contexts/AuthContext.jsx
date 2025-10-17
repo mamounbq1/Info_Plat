@@ -53,6 +53,8 @@ export function AuthProvider({ children }) {
         email,
         fullName: userData.fullName,
         role: userData.role || 'student',
+        approved: userData.role === 'admin' ? true : false, // Only students need approval
+        status: userData.role === 'admin' ? 'active' : 'pending', // pending, active, rejected
         createdAt: new Date().toISOString(),
         progress: {},
         enrolledCourses: [],
@@ -148,6 +150,8 @@ export function AuthProvider({ children }) {
           email: result.user.email,
           fullName: result.user.displayName || 'User',
           role: 'student',
+          approved: false, // Students need approval
+          status: 'pending',
           createdAt: new Date().toISOString(),
           progress: {},
           enrolledCourses: [],
@@ -206,11 +210,15 @@ export function AuthProvider({ children }) {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        setUserProfile(docSnap.data());
-        return docSnap.data();
+        const profile = docSnap.data();
+        console.log('✅ User profile loaded:', { uid, role: profile.role, fullName: profile.fullName });
+        setUserProfile(profile);
+        return profile;
+      } else {
+        console.warn('⚠️ User profile not found in Firestore for uid:', uid);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
     }
   }
 
@@ -246,7 +254,11 @@ export function AuthProvider({ children }) {
     resetPassword,
     verifyEmail,
     isAdmin: userProfile?.role === 'admin',
-    isStudent: userProfile?.role === 'student'
+    isStudent: userProfile?.role === 'student',
+    isTeacher: userProfile?.role === 'teacher',
+    userRole: userProfile?.role, // Direct access to user role
+    isApproved: userProfile?.approved === true, // Check if user is approved
+    userStatus: userProfile?.status // pending, active, rejected
   };
 
   return (
