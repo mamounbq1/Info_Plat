@@ -1,0 +1,250 @@
+{
+  "startTime": "2025-10-17T21:59:09.155Z",
+  "tests": [
+    {
+      "category": "Navigation",
+      "name": "Page d'accueil",
+      "status": "PASS",
+      "message": "Page d'accueil accessible",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:14.232Z"
+    },
+    {
+      "category": "Contact",
+      "name": "Formulaire contact",
+      "status": "FAIL",
+      "message": "No element found for selector: input[name=\"name\"]",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:18.107Z"
+    },
+    {
+      "category": "Setup Admin",
+      "name": "Création admin",
+      "status": "FAIL",
+      "message": "Navigation timeout of 30000 ms exceeded",
+      "details": {
+        "stack": "TimeoutError: Navigation timeout of 30000 ms exceeded\n    at new Deferred (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:60:34)\n    at Deferred.create (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:21:16)\n    at new LifecycleWatcher (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/LifecycleWatcher.js:73:60)\n    at CdpFrame.goto (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Frame.js:149:29)\n    at CdpFrame.<anonymous> (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:109:27)\n    at CdpPage.goto (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:572:43)\n    at testSetupAdmin (/home/user/webapp/test-complete.cjs:213:16)\n    at runAllTests (/home/user/webapp/test-complete.cjs:652:11)"
+      },
+      "timestamp": "2025-10-17T21:59:48.114Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:50.130Z"
+    },
+    {
+      "category": "Signup",
+      "name": "Création student",
+      "status": "PASS",
+      "message": "Compte student créé avec succès",
+      "details": {
+        "email": "student-test-1760738351233@test.com"
+      },
+      "timestamp": "2025-10-17T21:59:57.439Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:59.446Z"
+    },
+    {
+      "category": "Signup",
+      "name": "Création teacher",
+      "status": "PASS",
+      "message": "Compte teacher créé avec succès",
+      "details": {
+        "email": "prof-test-1760738351233@test.com"
+      },
+      "timestamp": "2025-10-17T22:00:05.588Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:07.596Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login admin",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:13.172Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:13.177Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login teacher",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:18.671Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:18.677Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login student",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:24.170Z"
+    }
+  ],
+  "bugs": [
+    {
+      "category": "Contact",
+      "name": "Formulaire contact",
+      "status": "FAIL",
+      "message": "No element found for selector: input[name=\"name\"]",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:18.107Z"
+    },
+    {
+      "category": "Setup Admin",
+      "name": "Création admin",
+      "status": "FAIL",
+      "message": "Navigation timeout of 30000 ms exceeded",
+      "details": {
+        "stack": "TimeoutError: Navigation timeout of 30000 ms exceeded\n    at new Deferred (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:60:34)\n    at Deferred.create (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/Deferred.js:21:16)\n    at new LifecycleWatcher (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/LifecycleWatcher.js:73:60)\n    at CdpFrame.goto (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/cdp/Frame.js:149:29)\n    at CdpFrame.<anonymous> (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/util/decorators.js:109:27)\n    at CdpPage.goto (/home/user/webapp/node_modules/puppeteer-core/lib/cjs/puppeteer/api/Page.js:572:43)\n    at testSetupAdmin (/home/user/webapp/test-complete.cjs:213:16)\n    at runAllTests (/home/user/webapp/test-complete.cjs:652:11)"
+      },
+      "timestamp": "2025-10-17T21:59:48.114Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:50.130Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:59.446Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:07.596Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:13.177Z"
+    },
+    {
+      "category": "Logout",
+      "name": "Déconnexion",
+      "status": "FAIL",
+      "message": "logoutButton.click is not a function",
+      "details": null,
+      "timestamp": "2025-10-17T22:00:18.677Z"
+    }
+  ],
+  "warnings": [
+    {
+      "category": "Login",
+      "name": "Login admin",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:13.172Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login teacher",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:18.671Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login student",
+      "status": "WARN",
+      "message": "Redirection inattendue",
+      "details": {
+        "url": "https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai/login",
+        "expected": "/dashboard"
+      },
+      "timestamp": "2025-10-17T22:00:24.170Z"
+    }
+  ],
+  "successes": [
+    {
+      "category": "Navigation",
+      "name": "Page d'accueil",
+      "status": "PASS",
+      "message": "Page d'accueil accessible",
+      "details": null,
+      "timestamp": "2025-10-17T21:59:14.232Z"
+    },
+    {
+      "category": "Signup",
+      "name": "Création student",
+      "status": "PASS",
+      "message": "Compte student créé avec succès",
+      "details": {
+        "email": "student-test-1760738351233@test.com"
+      },
+      "timestamp": "2025-10-17T21:59:57.439Z"
+    },
+    {
+      "category": "Signup",
+      "name": "Création teacher",
+      "status": "PASS",
+      "message": "Compte teacher créé avec succès",
+      "details": {
+        "email": "prof-test-1760738351233@test.com"
+      },
+      "timestamp": "2025-10-17T22:00:05.588Z"
+    }
+  ],
+  "endTime": "2025-10-17T22:00:24.170Z"
+}

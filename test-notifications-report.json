@@ -1,0 +1,254 @@
+{
+  "startTime": "2025-10-17T22:25:40.341Z",
+  "tests": [
+    {
+      "category": "Setup",
+      "name": "Création admin",
+      "status": "PASS",
+      "message": "Admin créé: admin-notif-1760739941210@test.com",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:06.982Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Message 1",
+      "status": "FAIL",
+      "message": "Formulaire de contact introuvable (éléments manquants)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:14.603Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Message 2",
+      "status": "FAIL",
+      "message": "Formulaire de contact introuvable (éléments manquants)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:20.298Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Étudiant 1",
+      "status": "PASS",
+      "message": "Compte étudiant 1 créé (notification générée)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:35.663Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Étudiant 2",
+      "status": "PASS",
+      "message": "Compte étudiant 2 créé (notification générée)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:51.018Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Génération",
+      "status": "INFO",
+      "message": "2 notifications générées",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:51.018Z"
+    },
+    {
+      "category": "Login",
+      "name": "Login admin",
+      "status": "PASS",
+      "message": "Login admin réussi",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:07.777Z"
+    },
+    {
+      "category": "Login",
+      "name": "Console logs",
+      "status": "INFO",
+      "message": "5 logs détectés",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:10.832Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Cloche icon",
+      "status": "PASS",
+      "message": "Cloche trouvée (méthode: svg)",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:15.890Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Badge",
+      "status": "WARN",
+      "message": "Aucun badge visible (peut-être aucune notification)",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:15.942Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Clic cloche",
+      "status": "PASS",
+      "message": "Cloche cliquée (button-with-svg)",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:16.489Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Panneau ouvert",
+      "status": "PASS",
+      "message": "Panneau visible et correctement positionné",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:18.075Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Position panneau",
+      "status": "INFO",
+      "message": "Position: top=64px, right=1713px, width=384px",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:18.075Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "CSS panneau",
+      "status": "PASS",
+      "message": "Panneau utilise position:fixed",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:18.075Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Liste",
+      "status": "WARN",
+      "message": "Aucune notification visible dans le panneau",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.130Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Explication",
+      "status": "INFO",
+      "message": "Les notifications n'apparaissent que si des données \"pending\" existent dans Firestore",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.130Z"
+    },
+    {
+      "category": "Actions",
+      "name": "Test actions",
+      "status": "WARN",
+      "message": "Aucune notification à tester",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.130Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Logs détectés",
+      "status": "PASS",
+      "message": "5 logs de notifications",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Context monté",
+      "status": "PASS",
+      "message": "NotificationContext monté",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Listeners démarrés",
+      "status": "PASS",
+      "message": "Listeners Firestore actifs",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Context monté",
+      "status": "PASS",
+      "message": "NotificationContext monté",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Listeners démarrés",
+      "status": "PASS",
+      "message": "Listeners Firestore actifs",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    },
+    {
+      "category": "Listeners",
+      "name": "Total calculé",
+      "status": "PASS",
+      "message": "0 (0 unread)",
+      "details": null,
+      "timestamp": "2025-10-17T22:27:20.182Z"
+    }
+  ],
+  "bugs": [
+    {
+      "category": "Notifications",
+      "name": "Message 1",
+      "status": "FAIL",
+      "message": "Formulaire de contact introuvable (éléments manquants)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:14.603Z"
+    },
+    {
+      "category": "Notifications",
+      "name": "Message 2",
+      "status": "FAIL",
+      "message": "Formulaire de contact introuvable (éléments manquants)",
+      "details": null,
+      "timestamp": "2025-10-17T22:26:20.298Z"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "01-setup-admin-page",
+      "path": "/home/user/webapp/test-notifications-screenshots/01-setup-admin-page.png"
+    },
+    {
+      "name": "02-setup-admin-filled",
+      "path": "/home/user/webapp/test-notifications-screenshots/02-setup-admin-filled.png"
+    },
+    {
+      "name": "03-setup-admin-submitted",
+      "path": "/home/user/webapp/test-notifications-screenshots/03-setup-admin-submitted.png"
+    },
+    {
+      "name": "04-contact-form-1",
+      "path": "/home/user/webapp/test-notifications-screenshots/04-contact-form-1.png"
+    },
+    {
+      "name": "04-contact-form-2",
+      "path": "/home/user/webapp/test-notifications-screenshots/04-contact-form-2.png"
+    },
+    {
+      "name": "06-signup-student-1",
+      "path": "/home/user/webapp/test-notifications-screenshots/06-signup-student-1.png"
+    },
+    {
+      "name": "06-signup-student-2",
+      "path": "/home/user/webapp/test-notifications-screenshots/06-signup-student-2.png"
+    },
+    {
+      "name": "07-login-admin",
+      "path": "/home/user/webapp/test-notifications-screenshots/07-login-admin.png"
+    },
+    {
+      "name": "08-dashboard-admin",
+      "path": "/home/user/webapp/test-notifications-screenshots/08-dashboard-admin.png"
+    },
+    {
+      "name": "10-bell-icon-found",
+      "path": "/home/user/webapp/test-notifications-screenshots/10-bell-icon-found.png"
+    },
+    {
+      "name": "11-notification-panel-opened",
+      "path": "/home/user/webapp/test-notifications-screenshots/11-notification-panel-opened.png"
+    }
+  ],
+  "endTime": "2025-10-17T22:27:20.182Z"
+}

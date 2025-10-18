@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Notifications - Lycée Almarinyine</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #4f46e5;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border-left: 4px solid #4f46e5;
+        }
+        h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .info {
+            background: #dbeafe;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+        code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        ol {
+            line-height: 1.8;
+        }
+        .emoji {
+            font-size: 24px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔔 Test du Système de Notifications</h1>
+        
+        <div class="info">
+            <strong>📍 Application URL:</strong><br>
+            <a href="https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai" target="_blank">
+                https://5173-irq1kz7b7dbqgugy7j37h-b32ec7bb.sandbox.novita.ai
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ Corrections Appliquées</h3>
+            <ol>
+                <li><strong>Positionnement du panneau</strong>: Changé de <code>absolute right-0</code> à <code>fixed top-16 right-4</code></li>
+                <li><strong>Z-index augmenté</strong>: <code>z-[100]</code> pour s'afficher au-dessus de tout</li>
+                <li><strong>Listeners séparés</strong>: Les listeners users et messages ne sont plus imbriqués</li>
+                <li><strong>IDs uniques</strong>: Préfixes <code>user-</code> et <code>message-</code> pour éviter les conflits</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Comment Tester les Notifications</h3>
+            
+            <h4>1. Test des Messages de Contact</h4>
+            <ol>
+                <li>Ouvrez la page d'accueil (landing page)</li>
+                <li>Scrollez jusqu'à la section "Contact"</li>
+                <li>Remplissez le formulaire:
+                    <ul>
+                        <li>Nom: Test User</li>
+                        <li>Email: test@test.com</li>
+                        <li>Sujet: Test de notification</li>
+                        <li>Message: Ceci est un message de test</li>
+                    </ul>
+                </li>
+                <li>Cliquez sur "Envoyer"</li>
+                <li>Vous devriez voir: <code>Message envoyé avec succès!</code></li>
+            </ol>
+
+            <h4>2. Test des Inscriptions Étudiants</h4>
+            <ol>
+                <li>Cliquez sur "Créer un compte" ou allez à /signup</li>
+                <li>Remplissez le formulaire:
+                    <ul>
+                        <li>Nom complet: Student Test</li>
+                        <li>Email: student-test@test.com</li>
+                        <li>Mot de passe: Test123456</li>
+                        <li>Rôle: <strong>Élève</strong></li>
+                    </ul>
+                </li>
+                <li>Créez le compte</li>
+                <li>L'utilisateur sera en status "pending"</li>
+            </ol>
+
+            <h4>3. Vérifier les Notifications (Admin)</h4>
+            <ol>
+                <li>Connectez-vous avec un compte <strong>Admin</strong></li>
+                <li>Ouvrez la <strong>Console du navigateur</strong> (F12)</li>
+                <li>Cherchez ces logs:
+                    <ul>
+                        <li><code>🔔 NotificationContext mounted</code></li>
+                        <li><code>✅ Starting notification listeners for admin...</code></li>
+                        <li><code>📊 Users snapshot received: X pending users</code></li>
+                        <li><code>📨 Messages snapshot received: X pending messages</code></li>
+                        <li><code>🔔 Total notifications: X (X unread)</code></li>
+                    </ul>
+                </li>
+                <li>Regardez en haut à droite de la sidebar</li>
+                <li>Vous devriez voir l'icône de cloche 🔔 avec un badge rouge</li>
+                <li>Cliquez sur la cloche</li>
+                <li>Le panneau devrait s'ouvrir <strong>à droite de l'écran</strong> (fixed position)</li>
+            </ol>
+        </div>
+
+        <div class="info warning">
+            <strong>⚠️ IMPORTANT: Règles Firestore</strong><br>
+            Les règles Firestore ont été mises à jour dans le code mais doivent être <strong>déployées sur Firebase</strong>:
+            <br><br>
+            <code>firebase deploy --only firestore:rules</code>
+            <br><br>
+            Ou manuellement via Firebase Console → Firestore Database → Rules
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Debugging</h3>
+            
+            <p><strong>Si vous ne voyez pas de notifications:</strong></p>
+            <ol>
+                <li>Vérifiez la console (F12) pour les logs de debug</li>
+                <li>Confirmez que vous êtes connecté en tant qu'<strong>admin</strong></li>
+                <li>Vérifiez que des données "pending" existent:
+                    <ul>
+                        <li>Users avec <code>status: 'pending'</code></li>
+                        <li>Messages avec <code>status: 'pending'</code></li>
+                    </ul>
+                </li>
+                <li>Vérifiez que les règles Firestore sont déployées</li>
+            </ol>
+
+            <p><strong>Si le panneau est mal positionné:</strong></p>
+            <ul>
+                <li>Vérifiez que le cache du navigateur est vidé (Ctrl+Shift+R)</li>
+                <li>Le panneau devrait être en <code>position: fixed</code> en haut à droite</li>
+                <li>Il ne devrait PAS être coupé par le sidebar</li>
+            </ul>
+        </div>
+
+        <div class="info success">
+            <strong>✨ Changements Principaux</strong><br>
+            <ol>
+                <li><strong>NotificationBell.jsx</strong>: Panneau en position fixed</li>
+                <li><strong>NotificationContext.jsx</strong>: Listeners parallèles (non imbriqués)</li>
+                <li><strong>firestore.rules</strong>: Permissions admin + collection messages</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📝 Prochaines Étapes</h2>
+        <ol>
+            <li>Déployez les règles Firestore</li>
+            <li>Testez la création d'un message via le formulaire de contact</li>
+            <li>Testez la création d'un compte étudiant</li>
+            <li>Connectez-vous en admin et vérifiez les notifications</li>
+            <li>Testez l'approbation/rejet des utilisateurs</li>
+        </ol>
+    </div>
+</body>
+</html>

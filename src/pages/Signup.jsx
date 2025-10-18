@@ -11,7 +11,7 @@ export default function Signup() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student',
+    role: 'student', // Always student - only role allowed for public signup
     agreeToTerms: false
   });
   const [loading, setLoading] = useState(false);
@@ -80,9 +80,13 @@ export default function Signup() {
       setLoading(true);
       await signup(formData.email, formData.password, {
         fullName: formData.fullName,
-        role: formData.role
+        role: 'student' // Force student role
       });
-      toast.success(isArabic ? 'تم إنشاء الحساب بنجاح!' : 'Compte créé avec succès!');
+      toast.success(
+        isArabic 
+          ? 'تم إنشاء الحساب بنجاح! في انتظار موافقة الإدارة.'
+          : 'Compte créé avec succès! En attente d\'approbation de l\'administration.'
+      );
       navigate('/dashboard');
     } catch (error) {
       console.error('Signup error:', error);
@@ -149,19 +153,26 @@ export default function Signup() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {isArabic ? 'نوع الحساب' : 'Type de compte'}
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="student">{isArabic ? 'طالب' : 'Étudiant'}</option>
-              <option value="admin">{isArabic ? 'مدرس / مسؤول' : 'Enseignant / Admin'}</option>
-            </select>
+          {/* Role removed - only students can register publicly */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-800 mb-1">
+                  {isArabic ? 'تسجيل حساب طالب' : 'Inscription Élève'}
+                </p>
+                <p className="text-xs text-blue-700">
+                  {isArabic 
+                    ? 'هذا النموذج مخصص للطلاب فقط. بعد التسجيل، سيتم مراجعة حسابك من قبل الإدارة قبل الوصول إلى لوحة التحكم.'
+                    : 'Ce formulaire est réservé aux élèves. Après inscription, votre compte sera vérifié par l\'administration avant d\'accéder au tableau de bord.'
+                  }
+                </p>
+              </div>
+            </div>
           </div>
 
           <div>

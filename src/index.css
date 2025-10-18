@@ -1,27 +1,135 @@
-/* Arabic Font Support */
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+/* Modern Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Cairo:wght@300;400;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
+  }
+
+  /* Apply Cairo font for Arabic text */
+  [dir="rtl"] {
+    font-family: 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* Headings use Poppins */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@layer components {
+  /* Custom Button Styles - Unique Design */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform;
+    @apply focus:outline-none focus:ring-4 focus:ring-opacity-50;
+    @apply active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none;
+  }
 
-/* Apply Cairo font for Arabic text */
-[dir="rtl"] {
-  font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  .btn-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-500 text-white;
+    @apply hover:from-primary-700 hover:to-primary-600 hover:-translate-y-0.5;
+    @apply focus:ring-primary-400;
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-secondary {
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700;
+    @apply hover:border-primary-500 hover:-translate-y-0.5;
+    @apply focus:ring-primary-400;
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+  
+  .btn-secondary:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent-600 to-accent-500 text-white;
+    @apply hover:from-accent-700 hover:to-accent-600 hover:-translate-y-0.5;
+    @apply focus:ring-accent-400;
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+  
+  .btn-accent:hover {
+    box-shadow: 0 0 20px rgba(243, 92, 71, 0.3);
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-gray-700 dark:text-gray-300;
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+    @apply focus:ring-gray-400;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-sm rounded-xl;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-lg rounded-2xl;
+  }
+
+  /* Custom Card Styles */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700;
+    @apply transition-all duration-300;
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-hover {
+    @apply hover:-translate-y-1 hover:border-primary-200 dark:hover:border-primary-800;
+  }
+  
+  .card-hover:hover {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Custom Input Styles */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white;
+    @apply focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900;
+    @apply transition-all duration-200;
+  }
+
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300;
+  }
+
+  .badge-success {
+    @apply bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300;
+  }
+
+  .badge-error {
+    @apply bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300;
+  }
 }
 
 /* RTL Support */
@@ -33,33 +141,56 @@ body {
   text-align: left;
 }
 
-/* Smooth transitions */
-* {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* Grid Pattern Background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
 }
 
-/* Custom scrollbar */
+.dark .bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
+}
+
+/* Custom scrollbar - Smooth & Modern */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+  background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+  background-clip: padding-box;
 }
 
-/* Line clamp utility */
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+  background-clip: padding-box;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -72,4 +203,22 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Glassmorphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+/* Smooth animations */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    scroll-behavior: smooth;
+  }
 }

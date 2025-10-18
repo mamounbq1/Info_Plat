@@ -23,30 +23,48 @@ export default function StudentDashboard() {
       setLoading(true);
       
       // Fetch all published courses
-      const coursesQuery = query(
-        collection(db, 'courses'),
-        where('published', '==', true),
-        orderBy('createdAt', 'desc')
-      );
-      const coursesSnapshot = await getDocs(coursesQuery);
-      const coursesData = coursesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCourses(coursesData);
+      try {
+        const coursesQuery = query(
+          collection(db, 'courses'),
+          where('published', '==', true),
+          orderBy('createdAt', 'desc')
+        );
+        const coursesSnapshot = await getDocs(coursesQuery);
+        const coursesData = coursesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setCourses(coursesData);
+        console.log('✅ Courses loaded:', coursesData.length);
+      } catch (error) {
+        console.error('❌ Error fetching courses:', error);
+        if (error.code === 'failed-precondition') {
+          console.warn('⚠️ Courses index not created yet. Please create the index.');
+        }
+      }
 
-      // Fetch all published quizzes
-      const quizzesQuery = query(
-        collection(db, 'quizzes'),
-        where('published', '==', true),
-        orderBy('createdAt', 'desc')
-      );
-      const quizzesSnapshot = await getDocs(quizzesQuery);
-      const quizzesData = quizzesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setQuizzes(quizzesData);
+      // Fetch all published quizzes (optional feature)
+      try {
+        const quizzesQuery = query(
+          collection(db, 'quizzes'),
+          where('published', '==', true),
+          orderBy('createdAt', 'desc')
+        );
+        const quizzesSnapshot = await getDocs(quizzesQuery);
+        const quizzesData = quizzesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setQuizzes(quizzesData);
+        console.log('✅ Quizzes loaded:', quizzesData.length);
+      } catch (error) {
+        console.error('⚠️ Error fetching quizzes (optional feature):', error);
+        if (error.code === 'failed-precondition') {
+          console.warn('ℹ️ Quizzes index not created. Quizzes feature will be unavailable.');
+        }
+        // Don't show error toast for quizzes, it's optional
+        setQuizzes([]);
+      }
       
     } catch (error) {
       console.error('Error fetching data:', error);

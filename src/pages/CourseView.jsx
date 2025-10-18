@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import Sidebar from '../components/Sidebar';
 import { 
   ArrowLeftIcon, 
   DocumentArrowDownIcon, 
@@ -24,6 +25,8 @@ export default function CourseView() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     fetchCourse();
@@ -173,8 +176,16 @@ export default function CourseView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          setIsOpen={setIsSidebarOpen}
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
+        />
+        <div className={`flex-1 min-h-screen flex items-center justify-center transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'}`}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
       </div>
     );
   }
@@ -184,16 +195,24 @@ export default function CourseView() {
   const isCompleted = userProfile?.progress?.[courseId] === 100;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-medium"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-          {isArabic ? 'العودة إلى لوحة التحكم' : 'Retour au tableau de bord'}
-        </button>
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        setIsOpen={setIsSidebarOpen}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
+      
+      <div className={`flex-1 min-h-screen overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'}`}>
+        <div className="container mx-auto px-4 py-8">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-6 font-medium"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+            {isArabic ? 'العودة إلى لوحة التحكم' : 'Retour au tableau de bord'}
+          </button>
 
         {/* Course Header */}
         <div className="bg-white rounded-xl shadow-md p-8 mb-6">
@@ -382,6 +401,7 @@ export default function CourseView() {
               }
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

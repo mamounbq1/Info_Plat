@@ -2,31 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Users collection - users can read all profiles, but only write their own
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection - users can read all profiles, users can write their own, admins can write any
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId || isAdmin();
+    }
+    
+    // Messages collection - anyone can create, only admins can read/update
+    match /messages/{messageId} {
+      allow create: if true; // Allow public contact form submissions
+      allow read, update, delete: if isAdmin();
     }
     
     // Courses collection - anyone authenticated can read, only admins can write
     match /courses/{courseId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create, update, delete: if isAdmin();
     }
     
     // Quizzes collection - anyone authenticated can read, only admins can write
     match /quizzes/{quizId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if request.auth != null && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create, update, delete: if isAdmin();
     }
     
     // Quiz results - students can write their own results, admins can read all
     match /quizResults/{resultId} {
       allow read: if request.auth != null && 
-                     (request.auth.uid == resource.data.studentId || 
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+                     (request.auth.uid == resource.data.studentId || isAdmin());
       allow create: if request.auth != null && request.auth.uid == request.resource.data.studentId;
     }
   }
