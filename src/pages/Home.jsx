@@ -39,11 +39,16 @@ export default function Home() {
   const fetchHomeContent = async () => {
     try {
       setLoading(true);
+      console.log('🏠 [Home] Starting to fetch homepage content...');
       
       // Fetch hero content
       const heroDoc = await getDoc(doc(db, 'homepage', 'hero'));
+      console.log('🎯 [Hero] Document exists:', heroDoc.exists(), 'Data:', heroDoc.data());
       if (heroDoc.exists() && heroDoc.data().enabled) {
         setHeroContent(heroDoc.data());
+        console.log('✅ [Hero] Content loaded and enabled');
+      } else {
+        console.log('⚠️ [Hero] No hero content or disabled, using defaults');
       }
 
       // Fetch features with fallback for missing index
@@ -59,8 +64,9 @@ export default function Home() {
           ...doc.data()
         }));
         setFeatures(featuresData);
+        console.log(`✅ [Features] Loaded ${featuresData.length} features with index`);
       } catch (error) {
-        console.log('⚠️ Features index not found, using fallback query');
+        console.log('⚠️ [Features] Index not found, using fallback query');
         // Fallback: fetch all and filter/sort locally
         const allFeaturesSnapshot = await getDocs(collection(db, 'homepage-features'));
         const featuresData = allFeaturesSnapshot.docs
@@ -68,6 +74,7 @@ export default function Home() {
           .filter(f => f.enabled)
           .sort((a, b) => (a.order || 0) - (b.order || 0));
         setFeatures(featuresData);
+        console.log(`✅ [Features] Loaded ${featuresData.length} features with fallback`);
       }
 
       // Fetch news with fallback for missing index
@@ -84,8 +91,9 @@ export default function Home() {
           ...doc.data()
         }));
         setNews(newsData);
+        console.log(`✅ [News] Loaded ${newsData.length} news items with index`);
       } catch (error) {
-        console.log('⚠️ News index not found, using fallback query');
+        console.log('⚠️ [News] Index not found, using fallback query');
         // Fallback: fetch all and filter/sort locally
         const allNewsSnapshot = await getDocs(collection(db, 'homepage-news'));
         const newsData = allNewsSnapshot.docs
@@ -94,6 +102,7 @@ export default function Home() {
           .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate))
           .slice(0, 3);
         setNews(newsData);
+        console.log(`✅ [News] Loaded ${newsData.length} news items with fallback`);
       }
 
       // Fetch testimonials with fallback
@@ -109,8 +118,9 @@ export default function Home() {
           ...doc.data()
         }));
         setTestimonials(testimonialsData);
+        console.log(`✅ [Testimonials] Loaded ${testimonialsData.length} testimonials with index`);
       } catch (error) {
-        console.log('⚠️ Testimonials index not found, using fallback query');
+        console.log('⚠️ [Testimonials] Index not found, using fallback query');
         // Fallback: fetch all and filter locally
         const allTestimonialsSnapshot = await getDocs(collection(db, 'homepage-testimonials'));
         const testimonialsData = allTestimonialsSnapshot.docs
@@ -118,15 +128,22 @@ export default function Home() {
           .filter(t => t.enabled)
           .slice(0, 3);
         setTestimonials(testimonialsData);
+        console.log(`✅ [Testimonials] Loaded ${testimonialsData.length} testimonials with fallback`);
       }
 
       // Fetch stats
       const statsDoc = await getDoc(doc(db, 'homepage', 'stats'));
+      console.log('📊 [Stats] Document exists:', statsDoc.exists(), 'Data:', statsDoc.data());
       if (statsDoc.exists()) {
         setStats(statsDoc.data());
+        console.log('✅ [Stats] Stats loaded');
+      } else {
+        console.log('⚠️ [Stats] No stats document found');
       }
+      
+      console.log('🏁 [Home] Finished loading all homepage content');
     } catch (error) {
-      console.error('Error fetching home content:', error);
+      console.error('❌ [Home] Error fetching home content:', error);
     } finally {
       setLoading(false);
     }

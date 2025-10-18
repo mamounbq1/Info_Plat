@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import toast from 'react-hot-toast';
+import { useHomeContent } from '../hooks/useHomeContent';
 import {
   AcademicCapIcon,
   NewspaperIcon,
@@ -160,6 +161,22 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  
+  // Load dynamic content from Firestore (managed in Admin Dashboard)
+  const { heroContent, features, news: dynamicNews, testimonials, stats: dynamicStats, loading: contentLoading } = useHomeContent();
+  
+  // Normalize dynamic news to match expected format
+  const normalizedNews = (dynamicNews && dynamicNews.length > 0) ? dynamicNews.map(news => ({
+    id: news.id,
+    titleFr: news.titleFr,
+    titleAr: news.titleAr,
+    dateFr: new Date(news.publishDate).toLocaleDateString('fr-FR'),
+    dateAr: new Date(news.publishDate).toLocaleDateString('ar-MA'),
+    descFr: news.contentFr,
+    descAr: news.contentAr,
+    image: news.imageUrl || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop',
+    category: news.category || 'Actualités'
+  })) : null;
 
   // Redirect if already logged in
   useEffect(() => {
@@ -425,25 +442,32 @@ export default function LandingPage() {
           <div className="container mx-auto px-4 relative">
             <div className="max-w-3xl">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 font-display leading-tight animate-fade-in">
-                {isArabic ? (
-                  <>
-                    ثانوية المارينيين
-                    <br />
-                    <span className="text-primary-400">مستقبل مشرق لأبنائنا</span>
-                  </>
+                {heroContent ? (
+                  isArabic ? heroContent.titleAr : heroContent.titleFr
                 ) : (
-                  <>
-                    Lycée Almarinyine
-                    <br />
-                    <span className="text-primary-400">Un avenir brillant pour nos élèves</span>
-                  </>
+                  isArabic ? (
+                    <>
+                      ثانوية المارينيين
+                      <br />
+                      <span className="text-primary-400">مستقبل مشرق لأبنائنا</span>
+                    </>
+                  ) : (
+                    <>
+                      Lycée Almarinyine
+                      <br />
+                      <span className="text-primary-400">Un avenir brillant pour nos élèves</span>
+                    </>
+                  )
                 )}
               </h1>
               <p className="text-xl text-gray-200 mb-8 leading-relaxed">
-                {isArabic 
-                  ? 'مؤسسة تعليمية تتميز بالجودة والتميز، نعمل على تطوير قدرات طلابنا وإعدادهم لمستقبل واعد'
-                  : 'Un établissement d\'excellence engagé dans la réussite de nos élèves et leur préparation à un avenir prometteur'
-                }
+                {heroContent ? (
+                  isArabic ? heroContent.subtitleAr : heroContent.subtitleFr
+                ) : (
+                  isArabic 
+                    ? 'مؤسسة تعليمية تتميز بالجودة والتميز، نعمل على تطوير قدرات طلابنا وإعدادهم لمستقبل واعد'
+                    : 'Un établissement d\'excellence engagé dans la réussite de nos élèves et leur préparation à un avenir prometteur'
+                )}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <a href="#news" className="btn btn-primary btn-lg">
@@ -461,36 +485,52 @@ export default function LandingPage() {
         {/* Quick Stats */}
         <section className="py-12 bg-white dark:bg-gray-800 shadow-lg -mt-8 relative z-10">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                <UserGroupIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">850+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {isArabic ? 'طالب' : 'Élèves'}
+            {dynamicStats && Object.keys(dynamicStats).length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {Object.entries(dynamicStats).map(([key, value]) => (
+                  <div key={key} className="text-center">
+                    <UserGroupIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {isArabic ? value.valueAr : value.valueFr}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {isArabic ? value.labelAr : value.labelFr}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div className="text-center">
+                  <UserGroupIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">850+</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'طالب' : 'Élèves'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <AcademicCapIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">60+</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'أستاذ' : 'Professeurs'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <TrophyIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">92%</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'نسبة النجاح' : 'Taux de réussite'}
+                  </div>
+                </div>
+                <div className="text-center">
+                  <CalendarDaysIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">25+</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'سنة من التميز' : 'Ans d\'excellence'}
+                  </div>
                 </div>
               </div>
-              <div className="text-center">
-                <AcademicCapIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">60+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {isArabic ? 'أستاذ' : 'Professeurs'}
-                </div>
-              </div>
-              <div className="text-center">
-                <TrophyIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">92%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {isArabic ? 'نسبة النجاح' : 'Taux de réussite'}
-                </div>
-              </div>
-              <div className="text-center">
-                <CalendarDaysIcon className="w-12 h-12 text-primary-600 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">25+</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {isArabic ? 'سنة من التميز' : 'Ans d\'excellence'}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -508,7 +548,7 @@ export default function LandingPage() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {latestNews.map((news, index) => (
+              {(normalizedNews || latestNews).map((news, index) => (
                 <div 
                   key={news.id} 
                   className="card card-hover overflow-hidden animate-slide-up"
