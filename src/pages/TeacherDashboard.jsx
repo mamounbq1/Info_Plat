@@ -14,7 +14,11 @@ import {
   UsersIcon,
   ChartBarIcon,
   BookOpenIcon,
-  ClockIcon
+  ClockIcon,
+  MagnifyingGlassIcon,
+  DocumentDuplicateIcon,
+  CheckCircleIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
@@ -50,6 +54,10 @@ export default function TeacherDashboard() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('courses'); // 'courses', 'students', 'stats'
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -262,6 +270,101 @@ export default function TeacherDashboard() {
     }
   };
 
+  const handleDuplicate = async (course) => {
+    try {
+      setLoading(true);
+      const duplicatedCourse = {
+        ...course,
+        titleFr: `${course.titleFr} (Copie)`,
+        titleAr: `${course.titleAr} (نسخة)`,
+        published: false,
+        createdAt: new Date().toISOString(),
+        createdBy: userProfile?.fullName || currentUser?.email,
+        teacherId: currentUser?.uid,
+        enrollmentCount: 0
+      };
+      delete duplicatedCourse.id;
+      await addDoc(collection(db, 'courses'), duplicatedCourse);
+      toast.success(isArabic ? 'تم تكرار الدرس بنجاح' : 'Cours dupliqué avec succès');
+      fetchCourses();
+    } catch (error) {
+      console.error('Error duplicating course:', error);
+      toast.error(isArabic ? 'خطأ في التكرار' : 'Erreur lors de la duplication');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedCourses.length === 0) {
+      toast.error(isArabic ? 'الرجاء اختيار دروس' : 'Veuillez sélectionner des cours');
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!window.confirm(isArabic ? `حذف ${selectedCourses.length} دروس؟` : `Supprimer ${selectedCourses.length} cours?`)) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      
+      for (const courseId of selectedCourses) {
+        if (action === 'delete') {
+          await deleteDoc(doc(db, 'courses', courseId));
+        } else if (action === 'publish') {
+          await updateDoc(doc(db, 'courses', courseId), { published: true });
+        } else if (action === 'unpublish') {
+          await updateDoc(doc(db, 'courses', courseId), { published: false });
+        }
+      }
+      
+      const actionMessages = {
+        delete: isArabic ? 'تم حذف الدروس' : 'Cours supprimés',
+        publish: isArabic ? 'تم نشر الدروس' : 'Cours publiés',
+        unpublish: isArabic ? 'تم إلغاء نشر الدروس' : 'Cours dépubliés'
+      };
+      
+      toast.success(actionMessages[action]);
+      setSelectedCourses([]);
+      fetchCourses();
+    } catch (error) {
+      console.error(`Error in bulk ${action}:`, error);
+      toast.error(isArabic ? 'خطأ في العملية' : 'Erreur dans l\'opération');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCourseSelection = (courseId) => {
+    setSelectedCourses(prev => 
+      prev.includes(courseId) 
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCourses.length === filteredCourses.length) {
+      setSelectedCourses([]);
+    } else {
+      setSelectedCourses(filteredCourses.map(c => c.id));
+    }
+  };
+
+  // Filter courses
+  const filteredCourses = courses.filter(course => {
+    const matchesSearch = 
+      course.titleFr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.titleAr?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'published' && course.published) ||
+      (filterStatus === 'draft' && !course.published);
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
   const closeModal = () => {
     setShowCourseModal(false);
     setEditingCourse(null);
@@ -385,11 +488,96 @@ export default function TeacherDashboard() {
           {/* Tab Content */}
           {activeTab === 'courses' && (
             <div className="space-y-4">
+              {/* Search and Filters */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={isArabic ? 'بحث عن درس...' : 'Rechercher un cours...'}
+                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                  </div>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">{isArabic ? 'كل الفئات' : 'Toutes catégories'}</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.id} value={cat.id}>{isArabic ? cat.ar : cat.fr}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="all">{isArabic ? 'كل الحالات' : 'Tous statuts'}</option>
+                    <option value="published">{isArabic ? 'منشور' : 'Publié'}</option>
+                    <option value="draft">{isArabic ? 'مسودة' : 'Brouillon'}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Bulk Actions Bar */}
+              {selectedCourses.length > 0 && (
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
+                      {selectedCourses.length} {isArabic ? 'درس محدد' : 'cours sélectionné(s)'}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleBulkAction('publish')}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                      >
+                        <CheckCircleIcon className="w-4 h-4" />
+                        {isArabic ? 'نشر' : 'Publier'}
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction('unpublish')}
+                        className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                        {isArabic ? 'إلغاء النشر' : 'Dépublier'}
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction('delete')}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        {isArabic ? 'حذف' : 'Supprimer'}
+                      </button>
+                      <button
+                        onClick={() => setSelectedCourses([])}
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition"
+                      >
+                        {isArabic ? 'إلغاء' : 'Annuler'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
                   <p className="text-gray-600 dark:text-gray-400 mt-4">
                     {isArabic ? 'جاري التحميل...' : 'Chargement...'}
+                  </p>
+                </div>
+              ) : filteredCourses.length === 0 && courses.length > 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-12 text-center">
+                  <FolderIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    {isArabic ? 'لا توجد نتائج' : 'Aucun résultat'}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'جرب معايير بحث مختلفة' : 'Essayez différents critères de recherche'}
                   </p>
                 </div>
               ) : courses.length === 0 ? (
@@ -410,18 +598,40 @@ export default function TeacherDashboard() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {courses.map((course) => (
-                    <CourseCard
-                      key={course.id}
-                      course={course}
-                      isArabic={isArabic}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onTogglePublish={togglePublished}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Select All */}
+                  {filteredCourses.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedCourses.length === filteredCourses.length && filteredCourses.length > 0}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {isArabic ? 'تحديد الكل' : 'Sélectionner tout'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {filteredCourses.map((course) => (
+                      <CourseCard
+                        key={course.id}
+                        course={course}
+                        isArabic={isArabic}
+                        isSelected={selectedCourses.includes(course.id)}
+                        onSelect={toggleCourseSelection}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onTogglePublish={togglePublished}
+                        onDuplicate={handleDuplicate}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -525,9 +735,13 @@ function StatCard({ icon, title, value, color }) {
 }
 
 // Course Card Component
-function CourseCard({ course, isArabic, onEdit, onDelete, onTogglePublish }) {
+function CourseCard({ course, isArabic, isSelected, onSelect, onEdit, onDelete, onTogglePublish, onDuplicate }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition">
+    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border hover:shadow-lg transition ${
+      isSelected 
+        ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20' 
+        : 'border-gray-200 dark:border-gray-700'
+    }`}>
       {course.thumbnail && (
         <img 
           src={course.thumbnail} 
@@ -536,7 +750,13 @@ function CourseCard({ course, isArabic, onEdit, onDelete, onTogglePublish }) {
         />
       )}
       <div className="p-5">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start gap-3 mb-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onSelect(course.id)}
+            className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+          />
           <div className="flex-1">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
               {isArabic ? course.titleAr : course.titleFr}
@@ -545,7 +765,8 @@ function CourseCard({ course, isArabic, onEdit, onDelete, onTogglePublish }) {
               {isArabic ? course.descriptionAr : course.descriptionFr}
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          <div>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
             course.published 
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
               : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
@@ -554,7 +775,8 @@ function CourseCard({ course, isArabic, onEdit, onDelete, onTogglePublish }) {
               ? (isArabic ? 'منشور' : 'Publié')
               : (isArabic ? 'مسودة' : 'Brouillon')
             }
-          </span>
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -595,8 +817,16 @@ function CourseCard({ course, isArabic, onEdit, onDelete, onTogglePublish }) {
             }
           </button>
           <button
+            onClick={() => onDuplicate(course)}
+            className="bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 p-2 rounded-lg transition"
+            title={isArabic ? 'تكرار' : 'Dupliquer'}
+          >
+            <DocumentDuplicateIcon className="w-5 h-5" />
+          </button>
+          <button
             onClick={() => onDelete(course.id)}
             className="bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 p-2 rounded-lg transition"
+            title={isArabic ? 'حذف' : 'Supprimer'}
           >
             <TrashIcon className="w-5 h-5" />
           </button>
