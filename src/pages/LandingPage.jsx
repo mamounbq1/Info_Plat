@@ -1,3 +1,20 @@
+/**
+ * LandingPage.jsx - PAGE D'ACCUEIL OFFICIELLE DU SITE
+ * 
+ * ⚠️ IMPORTANT: C'est la SEULE page d'accueil utilisée (route: "/")
+ * 
+ * Cette page charge dynamiquement le contenu depuis Firestore grâce au hook useHomeContent:
+ * - Hero Section (titre, sous-titre, boutons)
+ * - Statistics (4 statistiques personnalisables)
+ * - News/Actualités (3 dernières actualités)
+ * - Features (fonctionnalités du lycée)
+ * - Testimonials (témoignages d'étudiants)
+ * 
+ * Le contenu est géré depuis: Admin Dashboard → Onglet Homepage
+ * 
+ * Système de fallback: Si aucune donnée Firestore, affiche du contenu par défaut
+ */
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';

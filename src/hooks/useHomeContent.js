@@ -3,8 +3,26 @@ import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from '
 import { db } from '../config/firebase';
 
 /**
- * Custom hook to fetch dynamic homepage content from Firestore
- * Used by LandingPage to display admin-controlled content
+ * useHomeContent - Hook personnalisé pour charger le contenu dynamique de la page d'accueil
+ * 
+ * 📍 Utilisé par: LandingPage.jsx (page d'accueil officielle)
+ * 🎯 Objectif: Charger le contenu depuis Firestore géré par Admin Dashboard → Homepage
+ * 
+ * Collections Firestore chargées:
+ * - homepage/hero: Titre, sous-titre, boutons de la section hero
+ * - homepage/stats: 4 statistiques (étudiants, professeurs, taux de réussite, années)
+ * - homepage-features: Fonctionnalités du lycée avec icônes
+ * - homepage-news: Actualités/annonces (3 plus récentes)
+ * - homepage-testimonials: Témoignages d'étudiants (3 maximum)
+ * 
+ * Fonctionnalités:
+ * - ✅ Chargement automatique au montage du composant
+ * - ✅ Système de fallback pour requêtes sans index Firestore
+ * - ✅ Gestion d'erreurs avec logs détaillés
+ * - ✅ Support complet bilinguisme FR/AR
+ * - ✅ Fonction refresh() pour recharger manuellement
+ * 
+ * @returns {Object} { heroContent, features, news, testimonials, stats, loading, refresh }
  */
 export function useHomeContent() {
   const [heroContent, setHeroContent] = useState(null);
