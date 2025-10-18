@@ -7,7 +7,7 @@ import {
   UserGroupIcon,
   AcademicCapIcon,
   BookOpenIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ClockIcon,
   CheckCircleIcon,
   FireIcon
@@ -283,7 +283,7 @@ export default function AnalyticsDashboard() {
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               {isArabic ? 'نمو المستخدمين' : 'Croissance des Utilisateurs'}
             </h3>
-            <TrendingUpIcon className="w-5 h-5 text-blue-600" />
+            <ArrowTrendingUpIcon className="w-5 h-5 text-blue-600" />
           </div>
           <div className="space-y-3">
             {analytics.userGrowth.map((item, index) => (
@@ -460,7 +460,7 @@ function StatCard({ title, value, change, icon: Icon, color, subtitle }) {
       </div>
       {change && (
         <div className="flex items-center gap-1 text-sm">
-          <TrendingUpIcon className="w-4 h-4" />
+          <ArrowTrendingUpIcon className="w-4 h-4" />
           <span className="font-medium">{change}</span>
           <span className="text-white/70 text-xs">vs mois dernier</span>
         </div>
