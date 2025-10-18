@@ -8,6 +8,17 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
+    // Helper function to check if user is teacher
+    function isTeacher() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    // Helper function to check if user is teacher or admin
+    function isTeacherOrAdmin() {
+      return isAdmin() || isTeacher();
+    }
+    
     // Users collection - users can read all profiles, users can write their own, admins can write any
     match /users/{userId} {
       allow read: if request.auth != null;
@@ -21,16 +32,20 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
     
-    // Courses collection - anyone authenticated can read, only admins can write
+    // Courses collection - anyone authenticated can read, teachers and admins can write
     match /courses/{courseId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin();
+      allow create: if isTeacherOrAdmin();
+      allow update, delete: if isTeacherOrAdmin() && 
+        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
     }
     
-    // Quizzes collection - anyone authenticated can read, only admins can write
+    // Quizzes collection - anyone authenticated can read, teachers and admins can write
     match /quizzes/{quizId} {
       allow read: if request.auth != null;
-      allow create, update, delete: if isAdmin();
+      allow create: if isTeacherOrAdmin();
+      allow update, delete: if isTeacherOrAdmin() && 
+        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
     }
     
     // Quiz results - students can write their own results, admins can read all
@@ -38,6 +53,27 @@ service cloud.firestore {
       allow read: if request.auth != null && 
                      (request.auth.uid == resource.data.studentId || isAdmin());
       allow create: if request.auth != null && request.auth.uid == request.resource.data.studentId;
+    }
+    
+    // Homepage content collections - everyone can read, only admins can write
+    match /homepage/{document} {
+      allow read: if true; // Public homepage content
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-features/{featureId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
