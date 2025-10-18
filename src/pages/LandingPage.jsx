@@ -43,6 +43,18 @@ import {
   EnvelopeIcon,
   MapPinIcon,
   ClockIcon,
+  BookOpenIcon,
+  ClipboardDocumentCheckIcon,
+  ChartBarIcon,
+  CogIcon,
+  GlobeAltIcon,
+  LightBulbIcon,
+  ShieldCheckIcon,
+  VideoCameraIcon,
+  BeakerIcon,
+  CalculatorIcon,
+  CpuChipIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline';
 
 // Contact Form Component
@@ -194,6 +206,30 @@ export default function LandingPage() {
     image: news.imageUrl || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop',
     category: news.category || 'Actualités'
   })) : null;
+  
+  // Icon mapping for features
+  const iconMap = {
+    BookOpenIcon,
+    ClipboardDocumentCheckIcon,
+    AcademicCapIcon,
+    UserGroupIcon,
+    ChartBarIcon,
+    CogIcon,
+    DocumentTextIcon,
+    GlobeAltIcon,
+    LightBulbIcon,
+    ShieldCheckIcon,
+    TrophyIcon,
+    VideoCameraIcon,
+    BeakerIcon,
+    CalculatorIcon,
+    CpuChipIcon,
+    StarIcon,
+    CalendarDaysIcon,
+    NewspaperIcon,
+    MegaphoneIcon,
+    PhotoIcon
+  };
 
   // Redirect if already logged in
   useEffect(() => {
@@ -325,6 +361,22 @@ export default function LandingPage() {
     'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400&h=300&fit=crop',
     'https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?w=400&h=300&fit=crop',
   ];
+
+  // Show loading screen while content is being fetched
+  if (contentLoading) {
+    return (
+      <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-600 mb-4"></div>
+            <p className="text-xl text-gray-700 dark:text-gray-300 font-semibold">
+              {isArabic ? 'جاري التحميل...' : 'Chargement...'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
@@ -611,6 +663,103 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Features Section - Dynamic from Firestore */}
+        {features && features.length > 0 && (
+          <section className="py-20 bg-white dark:bg-gray-800">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+                  {isArabic ? 'مميزاتنا' : 'Nos Atouts'}
+                </h2>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  {isArabic ? 'ما يميز ثانويتنا' : 'Ce qui distingue notre lycée'}
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {features.map((feature, index) => {
+                  const IconComponent = iconMap[feature.icon] || BookOpenIcon;
+                  return (
+                    <div 
+                      key={feature.id}
+                      className="card p-6 text-center card-hover animate-slide-up"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                        <IconComponent className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                        {isArabic ? feature.titleAr : feature.titleFr}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {isArabic ? feature.descriptionAr : feature.descriptionFr}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Testimonials Section - Dynamic from Firestore */}
+        {testimonials && testimonials.length > 0 && (
+          <section className="py-20 bg-gray-50 dark:bg-gray-900">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+                  {isArabic ? 'آراء طلابنا' : 'Témoignages de nos Élèves'}
+                </h2>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  {isArabic ? 'ماذا يقول طلابنا عنا' : 'Ce que nos élèves disent de nous'}
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-8">
+                {testimonials.map((testimonial, index) => (
+                  <div 
+                    key={testimonial.id}
+                    className="card p-8 animate-slide-up"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      {testimonial.avatarUrl ? (
+                        <img 
+                          src={testimonial.avatarUrl} 
+                          alt={isArabic ? testimonial.nameAr : testimonial.nameFr}
+                          className="w-16 h-16 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-xl font-bold">
+                          {(isArabic ? testimonial.nameAr : testimonial.nameFr).charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-white">
+                          {isArabic ? testimonial.nameAr : testimonial.nameFr}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {isArabic ? testimonial.roleAr : testimonial.roleFr}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(testimonial.rating || 5)].map((_, i) => (
+                        <StarIcon key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                      ))}
+                    </div>
+                    
+                    <p className="text-gray-600 dark:text-gray-400 italic">
+                      "{isArabic ? testimonial.contentAr : testimonial.contentFr}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Announcements */}
         <section id="announcements" className="py-20 bg-white dark:bg-gray-800">
