@@ -9,7 +9,18 @@ import {
   ClipboardDocumentCheckIcon, 
   UserGroupIcon,
   StarIcon,
-  CalendarIcon
+  CalendarIcon,
+  ChartBarIcon,
+  CogIcon,
+  DocumentTextIcon,
+  GlobeAltIcon,
+  LightBulbIcon,
+  ShieldCheckIcon,
+  TrophyIcon,
+  VideoCameraIcon,
+  BeakerIcon,
+  CalculatorIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 
 export default function Home() {
@@ -35,45 +46,79 @@ export default function Home() {
         setHeroContent(heroDoc.data());
       }
 
-      // Fetch features
-      const featuresQuery = query(
-        collection(db, 'homepage-features'),
-        where('enabled', '==', true),
-        orderBy('order', 'asc')
-      );
-      const featuresSnapshot = await getDocs(featuresQuery);
-      const featuresData = featuresSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setFeatures(featuresData);
+      // Fetch features with fallback for missing index
+      try {
+        const featuresQuery = query(
+          collection(db, 'homepage-features'),
+          where('enabled', '==', true),
+          orderBy('order', 'asc')
+        );
+        const featuresSnapshot = await getDocs(featuresQuery);
+        const featuresData = featuresSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setFeatures(featuresData);
+      } catch (error) {
+        console.log('⚠️ Features index not found, using fallback query');
+        // Fallback: fetch all and filter/sort locally
+        const allFeaturesSnapshot = await getDocs(collection(db, 'homepage-features'));
+        const featuresData = allFeaturesSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(f => f.enabled)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        setFeatures(featuresData);
+      }
 
-      // Fetch news
-      const newsQuery = query(
-        collection(db, 'homepage-news'),
-        where('enabled', '==', true),
-        orderBy('publishDate', 'desc'),
-        limit(3)
-      );
-      const newsSnapshot = await getDocs(newsQuery);
-      const newsData = newsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setNews(newsData);
+      // Fetch news with fallback for missing index
+      try {
+        const newsQuery = query(
+          collection(db, 'homepage-news'),
+          where('enabled', '==', true),
+          orderBy('publishDate', 'desc'),
+          limit(3)
+        );
+        const newsSnapshot = await getDocs(newsQuery);
+        const newsData = newsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setNews(newsData);
+      } catch (error) {
+        console.log('⚠️ News index not found, using fallback query');
+        // Fallback: fetch all and filter/sort locally
+        const allNewsSnapshot = await getDocs(collection(db, 'homepage-news'));
+        const newsData = allNewsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(n => n.enabled)
+          .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate))
+          .slice(0, 3);
+        setNews(newsData);
+      }
 
-      // Fetch testimonials
-      const testimonialsQuery = query(
-        collection(db, 'homepage-testimonials'),
-        where('enabled', '==', true),
-        limit(3)
-      );
-      const testimonialsSnapshot = await getDocs(testimonialsQuery);
-      const testimonialsData = testimonialsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTestimonials(testimonialsData);
+      // Fetch testimonials with fallback
+      try {
+        const testimonialsQuery = query(
+          collection(db, 'homepage-testimonials'),
+          where('enabled', '==', true),
+          limit(3)
+        );
+        const testimonialsSnapshot = await getDocs(testimonialsQuery);
+        const testimonialsData = testimonialsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setTestimonials(testimonialsData);
+      } catch (error) {
+        console.log('⚠️ Testimonials index not found, using fallback query');
+        // Fallback: fetch all and filter locally
+        const allTestimonialsSnapshot = await getDocs(collection(db, 'homepage-testimonials'));
+        const testimonialsData = allTestimonialsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(t => t.enabled)
+          .slice(0, 3);
+        setTestimonials(testimonialsData);
+      }
 
       // Fetch stats
       const statsDoc = await getDoc(doc(db, 'homepage', 'stats'));
@@ -87,12 +132,25 @@ export default function Home() {
     }
   };
 
-  // Icon mapping for features
+  // Icon mapping for features - complete list
   const iconMap = {
     BookOpenIcon,
     ClipboardDocumentCheckIcon,
     AcademicCapIcon,
-    UserGroupIcon
+    UserGroupIcon,
+    ChartBarIcon,
+    CogIcon,
+    DocumentTextIcon,
+    GlobeAltIcon,
+    LightBulbIcon,
+    ShieldCheckIcon,
+    TrophyIcon,
+    VideoCameraIcon,
+    BeakerIcon,
+    CalculatorIcon,
+    CpuChipIcon,
+    StarIcon,
+    CalendarIcon
   };
 
   // Default features if none from database
