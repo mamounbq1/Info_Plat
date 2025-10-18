@@ -11,12 +11,23 @@ import {
   FolderIcon,
   AcademicCapIcon,
   UsersIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  ChartBarIcon,
+  HomeIcon,
+  Cog6ToothIcon,
+  CheckCircleIcon,
+  XMarkIcon,
+  DocumentDuplicateIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
 import UserManagement from '../components/UserManagement';
 import Sidebar from '../components/Sidebar';
+import HomeContentManager from '../components/HomeContentManager';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
 const CATEGORIES = [
   { id: 'mathematics', fr: 'Mathématiques', ar: 'الرياضيات' },
@@ -38,7 +49,11 @@ export default function AdminDashboard() {
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'users'
+  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'courses', 'users', 'homepage', 'settings'
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -176,6 +191,99 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDuplicate = async (course) => {
+    try {
+      setLoading(true);
+      const duplicatedCourse = {
+        ...course,
+        titleFr: `${course.titleFr} (Copie)`,
+        titleAr: `${course.titleAr} (نسخة)`,
+        published: false,
+        createdAt: new Date().toISOString(),
+        createdBy: userProfile?.fullName || 'Admin'
+      };
+      delete duplicatedCourse.id;
+      await addDoc(collection(db, 'courses'), duplicatedCourse);
+      toast.success(isArabic ? 'تم تكرار الدرس بنجاح' : 'Cours dupliqué avec succès');
+      fetchCourses();
+    } catch (error) {
+      console.error('Error duplicating course:', error);
+      toast.error(isArabic ? 'خطأ في التكرار' : 'Erreur lors de la duplication');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedCourses.length === 0) {
+      toast.error(isArabic ? 'الرجاء اختيار دروس' : 'Veuillez sélectionner des cours');
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!window.confirm(isArabic ? `حذف ${selectedCourses.length} دروس؟` : `Supprimer ${selectedCourses.length} cours?`)) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      
+      for (const courseId of selectedCourses) {
+        if (action === 'delete') {
+          await deleteDoc(doc(db, 'courses', courseId));
+        } else if (action === 'publish') {
+          await updateDoc(doc(db, 'courses', courseId), { published: true });
+        } else if (action === 'unpublish') {
+          await updateDoc(doc(db, 'courses', courseId), { published: false });
+        }
+      }
+      
+      const actionMessages = {
+        delete: isArabic ? 'تم حذف الدروس' : 'Cours supprimés',
+        publish: isArabic ? 'تم نشر الدروس' : 'Cours publiés',
+        unpublish: isArabic ? 'تم إلغاء نشر الدروس' : 'Cours dépubliés'
+      };
+      
+      toast.success(actionMessages[action]);
+      setSelectedCourses([]);
+      fetchCourses();
+    } catch (error) {
+      console.error(`Error in bulk ${action}:`, error);
+      toast.error(isArabic ? 'خطأ في العملية' : 'Erreur dans l\'opération');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCourseSelection = (courseId) => {
+    setSelectedCourses(prev => 
+      prev.includes(courseId) 
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCourses.length === filteredCourses.length) {
+      setSelectedCourses([]);
+    } else {
+      setSelectedCourses(filteredCourses.map(c => c.id));
+    }
+  };
+
+  // Filter courses
+  const filteredCourses = courses.filter(course => {
+    const matchesSearch = 
+      course.titleFr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.titleAr?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'published' && course.published) ||
+      (filterStatus === 'draft' && !course.published);
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
   const closeModal = () => {
     setShowCourseModal(false);
     setEditingCourse(null);
@@ -232,10 +340,21 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
+          <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+                activeTab === 'analytics'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
+            >
+              <ChartBarIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'التحليلات' : 'Analytics'}
+            </button>
             <button
               onClick={() => setActiveTab('courses')}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition ${
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
                 activeTab === 'courses'
                   ? 'border-b-2 border-purple-600 text-purple-600'
                   : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
@@ -246,7 +365,7 @@ export default function AdminDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition ${
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
                 activeTab === 'users'
                   ? 'border-b-2 border-purple-600 text-purple-600'
                   : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
@@ -255,12 +374,27 @@ export default function AdminDashboard() {
               <UsersIcon className="w-5 h-5 inline-block mr-2" />
               {isArabic ? 'المستخدمون' : 'Utilisateurs'}
             </button>
+            <button
+              onClick={() => setActiveTab('homepage')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+                activeTab === 'homepage'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
+            >
+              <HomeIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'الصفحة الرئيسية' : 'Page d\'Accueil'}
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'users' ? (
+        {activeTab === 'analytics' ? (
+          <AnalyticsDashboard />
+        ) : activeTab === 'users' ? (
           <UserManagement />
+        ) : activeTab === 'homepage' ? (
+          <HomeContentManager />
         ) : (
           <>
         {/* Statistics */}
@@ -290,16 +424,91 @@ export default function AdminDashboard() {
         </div>
 
         {/* Courses List */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {isArabic ? 'جميع الدروس' : 'Tous les cours'}
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {isArabic ? 'جميع الدروس' : 'Tous les cours'}
+            </h2>
+            
+            {/* Search and Filters */}
+            <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+              <div className="relative flex-1 lg:flex-initial lg:w-64">
+                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={isArabic ? 'بحث...' : 'Rechercher...'}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">{isArabic ? 'كل الفئات' : 'Toutes catégories'}</option>
+                {CATEGORIES.map(cat => (
+                  <option key={cat.id} value={cat.id}>{isArabic ? cat.ar : cat.fr}</option>
+                ))}
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">{isArabic ? 'كل الحالات' : 'Tous statuts'}</option>
+                <option value="published">{isArabic ? 'منشور' : 'Publié'}</option>
+                <option value="draft">{isArabic ? 'مسودة' : 'Brouillon'}</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Bulk Actions Bar */}
+          {selectedCourses.length > 0 && (
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                  {selectedCourses.length} {isArabic ? 'دروس محددة' : 'cours sélectionnés'}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleBulkAction('publish')}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                  >
+                    <CheckCircleIcon className="w-4 h-4" />
+                    {isArabic ? 'نشر' : 'Publier'}
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('unpublish')}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                    {isArabic ? 'إلغاء النشر' : 'Dépublier'}
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('delete')}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    {isArabic ? 'حذف' : 'Supprimer'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedCourses([])}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition"
+                  >
+                    {isArabic ? 'إلغاء' : 'Annuler'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             </div>
-          ) : courses.length === 0 ? (
+          ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
               <DocumentIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-4">
@@ -313,33 +522,63 @@ export default function AdminDashboard() {
               </button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course) => (
+            <>
+              {/* Select All Checkbox */}
+              {courses.length > 0 && (
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedCourses.length === filteredCourses.length && filteredCourses.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {isArabic ? 'تحديد الكل' : 'Sélectionner tout'}
+                  </span>
+                </div>
+              )}
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCourses.map((course) => (
                 <div
                   key={course.id}
-                  className="border border-gray-200 rounded-lg p-5 hover:shadow-lg transition"
+                  className={`border rounded-lg p-5 hover:shadow-lg transition ${
+                    selectedCourses.includes(course.id)
+                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-lg text-gray-900 flex-1">
-                      {isArabic ? course.titleAr : course.titleFr}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      course.published 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {course.published 
-                        ? (isArabic ? 'منشور' : 'Publié')
-                        : (isArabic ? 'مسودة' : 'Brouillon')
-                      }
-                    </span>
+                  <div className="flex items-start gap-3 mb-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedCourses.includes(course.id)}
+                      onChange={() => toggleCourseSelection(course.id)}
+                      className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-white flex-1">
+                          {isArabic ? course.titleAr : course.titleFr}
+                        </h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          course.published 
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        }`}>
+                          {course.published 
+                            ? (isArabic ? 'منشور' : 'Publié')
+                            : (isArabic ? 'مسودة' : 'Brouillon')
+                          }
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2 ml-7">
                     {isArabic ? course.descriptionAr : course.descriptionFr}
                   </p>
 
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-3 ml-7">
                     {course.category && (
                       <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                         {CATEGORIES.find(c => c.id === course.category)?.[isArabic ? 'ar' : 'fr']}
@@ -352,25 +591,34 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  <div className="flex gap-2 pt-3 border-t">
+                  <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 ml-7">
                     <button
                       onClick={() => handleEdit(course)}
-                      className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg font-medium hover:bg-blue-100 transition text-sm"
+                      className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition text-sm"
+                      title={isArabic ? 'تعديل' : 'Modifier'}
                     >
                       <PencilIcon className="w-4 h-4 inline mr-1" />
                       {isArabic ? 'تعديل' : 'Modifier'}
                     </button>
                     <button
-                      onClick={() => handleDelete(course.id)}
-                      className="flex-1 bg-red-50 text-red-600 px-3 py-2 rounded-lg font-medium hover:bg-red-100 transition text-sm"
+                      onClick={() => handleDuplicate(course)}
+                      className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-3 py-2 rounded-lg font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-sm"
+                      title={isArabic ? 'تكرار' : 'Dupliquer'}
                     >
-                      <TrashIcon className="w-4 h-4 inline mr-1" />
-                      {isArabic ? 'حذف' : 'Supprimer'}
+                      <DocumentDuplicateIcon className="w-4 h-4 inline" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(course.id)}
+                      className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/50 transition text-sm"
+                      title={isArabic ? 'حذف' : 'Supprimer'}
+                    >
+                      <TrashIcon className="w-4 h-4 inline" />
                     </button>
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
           </>

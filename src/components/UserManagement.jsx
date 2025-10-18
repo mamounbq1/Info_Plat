@@ -22,6 +22,7 @@ export default function UserManagement() {
   const [filterStatus, setFilterStatus] = useState('all'); // all, pending, active, rejected
   const [filterRole, setFilterRole] = useState('all'); // all, student, teacher, admin
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState([]);
   
   const [teacherForm, setTeacherForm] = useState({
     fullName: '',
@@ -94,6 +95,72 @@ export default function UserManagement() {
         console.error('Error deleting user:', error);
         toast.error(isArabic ? 'خطأ في الحذف' : 'Erreur lors de la suppression');
       }
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedUsers.length === 0) {
+      toast.error(isArabic ? 'الرجاء اختيار مستخدمين' : 'Veuillez sélectionner des utilisateurs');
+      return;
+    }
+
+    if (action === 'delete') {
+      if (!window.confirm(isArabic ? `حذف ${selectedUsers.length} مستخدمين؟` : `Supprimer ${selectedUsers.length} utilisateurs?`)) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      
+      for (const userId of selectedUsers) {
+        if (action === 'delete') {
+          await deleteDoc(doc(db, 'users', userId));
+        } else if (action === 'approve') {
+          await updateDoc(doc(db, 'users', userId), {
+            approved: true,
+            status: 'active',
+            approvedAt: new Date().toISOString()
+          });
+        } else if (action === 'reject') {
+          await updateDoc(doc(db, 'users', userId), {
+            approved: false,
+            status: 'rejected',
+            rejectedAt: new Date().toISOString()
+          });
+        }
+      }
+      
+      const actionMessages = {
+        delete: isArabic ? 'تم حذف المستخدمين' : 'Utilisateurs supprimés',
+        approve: isArabic ? 'تم الموافقة على المستخدمين' : 'Utilisateurs approuvés',
+        reject: isArabic ? 'تم رفض المستخدمين' : 'Utilisateurs refusés'
+      };
+      
+      toast.success(actionMessages[action]);
+      setSelectedUsers([]);
+      fetchUsers();
+    } catch (error) {
+      console.error(`Error in bulk ${action}:`, error);
+      toast.error(isArabic ? 'خطأ في العملية' : 'Erreur dans l\'opération');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.length === filteredUsers.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(filteredUsers.map(u => u.id));
     }
   };
 
@@ -203,6 +270,46 @@ export default function UserManagement() {
         />
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
+              {selectedUsers.length} {isArabic ? 'مستخدم محدد' : 'utilisateurs sélectionnés'}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleBulkAction('approve')}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                {isArabic ? 'موافقة' : 'Approuver'}
+              </button>
+              <button
+                onClick={() => handleBulkAction('reject')}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                <XCircleIcon className="w-4 h-4" />
+                {isArabic ? 'رفض' : 'Refuser'}
+              </button>
+              <button
+                onClick={() => handleBulkAction('delete')}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                <TrashIcon className="w-4 h-4" />
+                {isArabic ? 'حذف' : 'Supprimer'}
+              </button>
+              <button
+                onClick={() => setSelectedUsers([])}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition"
+              >
+                {isArabic ? 'إلغاء' : 'Annuler'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions Bar */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
@@ -272,6 +379,14 @@ export default function UserManagement() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     {isArabic ? 'الاسم' : 'Nom'}
                   </th>
@@ -294,7 +409,17 @@ export default function UserManagement() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={user.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    selectedUsers.includes(user.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(user.id)}
+                        onChange={() => toggleUserSelection(user.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                       {user.fullName}
                     </td>
