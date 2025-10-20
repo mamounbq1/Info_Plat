@@ -627,9 +627,12 @@ export default function LandingPage() {
                 {/* Image */}
                 <div className="aspect-[16/10] overflow-hidden bg-gray-200 dark:bg-gray-700">
                   <img
-                    src={article.image || 'https://via.placeholder.com/400x250?text=News'}
+                    src={article.image || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400&h=250&fit=crop'}
                     alt={article[isArabic ? 'titleAr' : 'titleFr']}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=250&fit=crop';
+                    }}
                   />
                 </div>
 
@@ -775,9 +778,12 @@ export default function LandingPage() {
               >
                 <div className={`${index === 0 ? 'aspect-[2/1]' : 'aspect-square'} overflow-hidden bg-gray-200 dark:bg-gray-700`}>
                   <img
-                    src={image.imageUrl || 'https://via.placeholder.com/400?text=Gallery'}
+                    src={image.imageUrl || `https://images.unsplash.com/photo-${1517486430919 + index * 1000}-c25f6c41a7b8?w=400&h=400&fit=crop`}
                     alt={image[isArabic ? 'titleAr' : 'titleFr']}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=400&fit=crop';
+                    }}
                   />
                 </div>
 
