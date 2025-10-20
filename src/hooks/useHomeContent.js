@@ -165,8 +165,14 @@ export function useHomeContent() {
         const statsDoc = await getDoc(doc(db, 'homepage', 'stats'));
         console.log('📊 [Stats] Document exists:', statsDoc.exists());
         if (statsDoc.exists()) {
-          setStats(statsDoc.data());
-          console.log('✅ [Stats] Stats loaded');
+          const statsData = statsDoc.data();
+          // Convert object {stats0, stats1, stats2, stats3} to array
+          const statsArray = Object.keys(statsData)
+            .filter(key => key.startsWith('stats'))
+            .sort() // stats0, stats1, stats2, stats3
+            .map(key => statsData[key]);
+          setStats(statsArray);
+          console.log(`✅ [Stats] Loaded ${statsArray.length} stats`);
         } else {
           console.log('⚠️ [Stats] No stats document found');
         }

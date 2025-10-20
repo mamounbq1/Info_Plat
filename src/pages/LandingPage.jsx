@@ -460,7 +460,8 @@ export default function LandingPage() {
       { labelFr: 'Clubs', labelAr: 'أندية', value: '15', icon: '🏆' },
     ];
 
-    const statsToDisplay = dynamicStats || defaultStats;
+    // Ensure stats is an array (fallback to default if not)
+    const statsToDisplay = Array.isArray(dynamicStats) ? dynamicStats : defaultStats;
 
     return (
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
