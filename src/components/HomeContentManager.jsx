@@ -10,9 +10,19 @@ import {
   NewspaperIcon,
   MegaphoneIcon,
   StarIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  UserGroupIcon,
+  LinkIcon,
+  PhoneIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+// ✨ NOUVEAU: Import des 5 nouveaux composants CMS modulaires
+import AnnouncementsManager from './cms/AnnouncementsManager';
+import ClubsManager from './cms/ClubsManager';
+import GalleryManager from './cms/GalleryManager';
+import QuickLinksManager from './cms/QuickLinksManager';
+import ContactManager from './cms/ContactManager';
 
 export default function HomeContentManager() {
   const { isArabic } = useLanguage();
@@ -439,6 +449,62 @@ export default function HomeContentManager() {
             <ChartBarIcon className="w-5 h-5 inline mr-2" />
             {isArabic ? 'الإحصائيات' : 'Statistiques'}
           </button>
+          {/* ✨ NOUVEAU: 5 nouveaux onglets */}
+          <button
+            onClick={() => setActiveSection('announcements')}
+            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+              activeSection === 'announcements'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <MegaphoneIcon className="w-5 h-5 inline mr-2" />
+            {isArabic ? 'الإعلانات' : 'Annonces'}
+          </button>
+          <button
+            onClick={() => setActiveSection('clubs')}
+            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+              activeSection === 'clubs'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <UserGroupIcon className="w-5 h-5 inline mr-2" />
+            {isArabic ? 'النوادي' : 'Clubs'}
+          </button>
+          <button
+            onClick={() => setActiveSection('gallery')}
+            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+              activeSection === 'gallery'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <PhotoIcon className="w-5 h-5 inline mr-2" />
+            {isArabic ? 'المعرض' : 'Galerie'}
+          </button>
+          <button
+            onClick={() => setActiveSection('quicklinks')}
+            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+              activeSection === 'quicklinks'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <LinkIcon className="w-5 h-5 inline mr-2" />
+            {isArabic ? 'روابط سريعة' : 'Liens'}
+          </button>
+          <button
+            onClick={() => setActiveSection('contact')}
+            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+              activeSection === 'contact'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <PhoneIcon className="w-5 h-5 inline mr-2" />
+            {isArabic ? 'اتصال' : 'Contact'}
+          </button>
         </div>
       </div>
 
@@ -494,6 +560,27 @@ export default function HomeContentManager() {
           loading={loading}
           isArabic={isArabic}
         />
+      )}
+
+      {/* ✨ NOUVEAU: Sections pour les nouveaux contenus CMS */}
+      {activeSection === 'announcements' && (
+        <AnnouncementsManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'clubs' && (
+        <ClubsManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'gallery' && (
+        <GalleryManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'quicklinks' && (
+        <QuickLinksManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'contact' && (
+        <ContactManager isArabic={isArabic} />
       )}
 
       {/* Modals */}

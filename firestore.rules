@@ -75,5 +75,26 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // ✨ NEW: Homepage CMS collections - everyone can read, only admins can write
+    match /homepage-announcements/{announcementId} {
+      allow read: if true; // Public announcements
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-clubs/{clubId} {
+      allow read: if true; // Public clubs
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-gallery/{imageId} {
+      allow read: if true; // Public gallery
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-quicklinks/{linkId} {
+      allow read: if true; // Public quick links
+      allow write: if isAdmin();
+    }
   }
 }
