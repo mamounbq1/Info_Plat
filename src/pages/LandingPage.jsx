@@ -89,14 +89,18 @@ export default function LandingPage() {
 
   const isArabic = language === 'ar';
 
-  // Gestion du scroll pour navbar sticky
+  // Gestion du scroll pour navbar sticky + fermeture menu mobile
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
+      // Fermer le menu mobile au scroll
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [mobileMenuOpen]);
 
   // Rotation automatique des témoignages
   useEffect(() => {
@@ -188,6 +192,15 @@ export default function LandingPage() {
   // Annonces urgentes avec filtrage
   const urgentAnnouncements = dynamicAnnouncements?.filter((a) => a.urgent) || [];
 
+  // Smooth scroll helper
+  const smoothScrollTo = (elementId) => {
+    const element = document.querySelector(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setMobileMenuOpen(false);
+    }
+  };
+
   // Navigation items
   const navItems = [
     { label: isArabic ? 'الرئيسية' : 'Accueil', href: '#hero' },
@@ -224,9 +237,9 @@ export default function LandingPage() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.href}
-                href={item.href}
+                onClick={() => smoothScrollTo(item.href)}
                 className={`font-medium transition-colors hover:text-blue-600 dark:hover:text-blue-400 ${
                   scrolled
                     ? 'text-gray-700 dark:text-gray-300'
@@ -234,7 +247,7 @@ export default function LandingPage() {
                 }`}
               >
                 {item.label}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -321,14 +334,13 @@ export default function LandingPage() {
         <div className="md:hidden bg-white dark:bg-gray-900 border-t dark:border-gray-800 shadow-lg">
           <div className="px-4 py-6 space-y-4">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.href}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
+                onClick={() => smoothScrollTo(item.href)}
+                className="block w-full text-left text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
               >
                 {item.label}
-              </a>
+              </button>
             ))}
             {user ? (
               <button
@@ -431,20 +443,29 @@ export default function LandingPage() {
   const UrgentAnnouncementsBar = () => {
     if (!urgentAnnouncements || urgentAnnouncements.length === 0) return null;
 
+    const AnnouncementItem = ({ announcement }) => (
+      <div className="flex items-center gap-3 whitespace-nowrap px-8">
+        <BellAlertIcon className="w-5 h-5 animate-pulse flex-shrink-0" />
+        <span className="font-semibold">
+          {announcement[isArabic ? 'titleAr' : 'titleFr']}
+        </span>
+        <span className="opacity-75">•</span>
+        <span className="text-sm">
+          {announcement[isArabic ? 'dateAr' : 'dateFr']}
+        </span>
+      </div>
+    );
+
     return (
-      <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-3 overflow-hidden">
+      <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white py-3 overflow-hidden relative">
         <div className="flex items-center gap-4 animate-scroll-x">
+          {/* First set */}
           {urgentAnnouncements.map((announcement, index) => (
-            <div key={announcement.id || index} className="flex items-center gap-3 whitespace-nowrap px-8">
-              <BellAlertIcon className="w-5 h-5 animate-pulse flex-shrink-0" />
-              <span className="font-semibold">
-                {announcement[isArabic ? 'titleAr' : 'titleFr']}
-              </span>
-              <span className="opacity-75">•</span>
-              <span className="text-sm">
-                {announcement[isArabic ? 'dateAr' : 'dateFr']}
-              </span>
-            </div>
+            <AnnouncementItem key={`first-${announcement.id || index}`} announcement={announcement} />
+          ))}
+          {/* Duplicate for seamless loop */}
+          {urgentAnnouncements.map((announcement, index) => (
+            <AnnouncementItem key={`second-${announcement.id || index}`} announcement={announcement} />
           ))}
         </div>
       </div>
@@ -625,15 +646,22 @@ export default function LandingPage() {
                 className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2"
               >
                 {/* Image */}
-                <div className="aspect-[16/10] overflow-hidden bg-gray-200 dark:bg-gray-700">
-                  <img
-                    src={article.image || 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=400&h=250&fit=crop'}
-                    alt={article[isArabic ? 'titleAr' : 'titleFr']}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=250&fit=crop';
-                    }}
-                  />
+                <div className="aspect-[16/10] overflow-hidden bg-gradient-to-br from-blue-500 to-violet-600 relative">
+                  {article.image ? (
+                    <img
+                      src={article.image}
+                      alt={article[isArabic ? 'titleAr' : 'titleFr']}
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <NewspaperIcon className="w-20 h-20 opacity-50" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -776,15 +804,25 @@ export default function LandingPage() {
                   index === 0 ? 'md:col-span-2 md:row-span-2' : ''
                 }`}
               >
-                <div className={`${index === 0 ? 'aspect-[2/1]' : 'aspect-square'} overflow-hidden bg-gray-200 dark:bg-gray-700`}>
-                  <img
-                    src={image.imageUrl || `https://images.unsplash.com/photo-${1517486430919 + index * 1000}-c25f6c41a7b8?w=400&h=400&fit=crop`}
-                    alt={image[isArabic ? 'titleAr' : 'titleFr']}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=400&fit=crop';
-                    }}
-                  />
+                <div className={`${index === 0 ? 'aspect-[2/1]' : 'aspect-square'} overflow-hidden bg-gradient-to-br ${
+                  ['from-blue-500 to-violet-600', 'from-violet-500 to-purple-600', 'from-amber-500 to-orange-600', 
+                   'from-green-500 to-teal-600', 'from-pink-500 to-rose-600', 'from-indigo-500 to-blue-600'][index % 6]
+                } relative`}>
+                  {image.imageUrl ? (
+                    <img
+                      src={image.imageUrl}
+                      alt={image[isArabic ? 'titleAr' : 'titleFr']}
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <PhotoIcon className="w-16 h-16 opacity-50" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Overlay */}
