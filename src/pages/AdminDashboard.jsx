@@ -28,6 +28,7 @@ import UserManagement from '../components/UserManagement';
 import Sidebar from '../components/Sidebar';
 import HomeContentManager from '../components/HomeContentManager';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import SiteSettingsManager from '../components/SiteSettingsManager';
 
 const CATEGORIES = [
   { id: 'mathematics', fr: 'Mathématiques', ar: 'الرياضيات' },
@@ -385,6 +386,17 @@ export default function AdminDashboard() {
               <HomeIcon className="w-5 h-5 inline-block mr-2" />
               {isArabic ? 'الصفحة الرئيسية' : 'Page d\'Accueil'}
             </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+                activeTab === 'settings'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
+            >
+              <Cog6ToothIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'الإعدادات' : 'Paramètres'}
+            </button>
           </div>
         </div>
 
@@ -395,6 +407,8 @@ export default function AdminDashboard() {
           <UserManagement />
         ) : activeTab === 'homepage' ? (
           <HomeContentManager />
+        ) : activeTab === 'settings' ? (
+          <SiteSettingsManager />
         ) : (
           <>
         {/* Statistics */}

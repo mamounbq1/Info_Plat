@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import { 
   HomeIcon, 
   AcademicCapIcon, 
@@ -14,6 +15,7 @@ import { useState } from 'react';
 export default function Navbar() {
   const { currentUser, logout, isAdmin } = useAuth();
   const { t, toggleLanguage, language } = useLanguage();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -32,9 +34,13 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <AcademicCapIcon className="w-8 h-8 text-blue-600" />
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+            ) : (
+              <AcademicCapIcon className="w-8 h-8 text-blue-600" />
+            )}
             <span className="text-xl font-bold text-gray-900">
-              {language === 'ar' ? 'منصة التعليم' : 'EduPlatform'}
+              {language === 'ar' ? settings.schoolNameAr : settings.schoolNameFr}
             </span>
           </Link>
 
