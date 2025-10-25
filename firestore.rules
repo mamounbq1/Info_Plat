@@ -19,7 +19,27 @@ service cloud.firestore {
       return isAdmin() || isTeacher();
     }
     
+    // Helper function to get teacher's subject
+    function getTeacherSubject() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subject;
+    }
+    
+    // Helper function to validate course subject matches teacher's subject
+    function validateCourseSubject() {
+      return isAdmin() || 
+             !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+             !('subject' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+             request.resource.data.subject == getTeacherSubject();
+    }
+    
+    // Helper function to validate targetLevels is present and non-empty
+    function hasValidTargetLevels() {
+      return request.resource.data.targetLevels is list && 
+             request.resource.data.targetLevels.size() > 0;
+    }
+    
     // Users collection - users can read all profiles, users can write their own, admins can write any
+    // ACADEMIC HIERARCHY: Students must have 'level', Teachers must have 'subject' and 'canTeachLevels'
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -33,15 +53,30 @@ service cloud.firestore {
     }
     
     // Courses collection - anyone authenticated can read, teachers and admins can write
+    // ACADEMIC HIERARCHY: Validate subject matches teacher's subject and targetLevels is present
     match /courses/{courseId} {
+      allow read: if request.auth != null;
+      allow create: if isTeacherOrAdmin() && 
+                       validateCourseSubject() && 
+                       hasValidTargetLevels();
+      allow update: if isTeacherOrAdmin() && 
+                       (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName) &&
+                       validateCourseSubject() && 
+                       hasValidTargetLevels();
+      allow delete: if isTeacherOrAdmin() && 
+                       (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
+    }
+    
+    // Quizzes collection - anyone authenticated can read, teachers and admins can write
+    match /quizzes/{quizId} {
       allow read: if request.auth != null;
       allow create: if isTeacherOrAdmin();
       allow update, delete: if isTeacherOrAdmin() && 
         (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
     }
     
-    // Quizzes collection - anyone authenticated can read, teachers and admins can write
-    match /quizzes/{quizId} {
+    // Exercises collection - anyone authenticated can read, teachers and admins can write
+    match /exercises/{exerciseId} {
       allow read: if request.auth != null;
       allow create: if isTeacherOrAdmin();
       allow update, delete: if isTeacherOrAdmin() && 
@@ -75,5 +110,69 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // ✨ NEW: Homepage CMS collections - everyone can read, only admins can write
+    match /homepage-announcements/{announcementId} {
+      allow read: if true; // Public announcements
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-events/{eventId} {
+      allow read: if true; // Public events
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-clubs/{clubId} {
+      allow read: if true; // Public clubs
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-gallery/{imageId} {
+      allow read: if true; // Public gallery
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-quicklinks/{linkId} {
+      allow read: if true; // Public quick links
+      allow write: if isAdmin();
+    }
+    
+    // Academic Levels collection - everyone can read (for signup & course forms), only admins can write
+    match /academicLevels/{levelId} {
+      allow read: if true; // Public read access for signup page and course forms
+      allow create, update, delete: if isAdmin(); // Only admins can manage levels
+    }
+    
+    // Branches (Types/Filières) collection - everyone can read, only admins can write
+    match /branches/{branchId} {
+      allow read: if true; // Public read access for signup page and course forms
+      allow create, update, delete: if isAdmin(); // Only admins can manage branches
+    }
+    
+    // Classes collection - everyone can read, only admins can write
+    match /classes/{classId} {
+      allow read: if true; // Public read access for student profiles and schedules
+      allow create, update, delete: if isAdmin(); // Only admins can manage classes
+    }
+    
+    // Subjects (Matières) collection - everyone can read, only admins can write
+    // INDEPENDENT: Subjects are universal and not linked to levels/branches
+    match /subjects/{subjectId} {
+      allow read: if true; // Public read access for course creation and teacher profiles
+      allow create, update, delete: if isAdmin(); // Only admins can manage subjects
+    }
+    
+    // Site Settings collection - everyone can read (for navbar), only admins can write
+    match /siteSettings/{settingId} {
+      allow read: if true; // Public read access for site-wide settings (navbar, logo, etc.)
+      allow write: if isAdmin(); // Only admins can update site settings
+    }
+    
+    // Page Contents collection (CMS) - everyone can read published pages, only admins can write
+    match /pageContents/{pageId} {
+      allow read: if true; // Public read access for all CMS-managed pages
+      allow write: if isAdmin(); // Only admins can manage page content
+    }
+
   }
 }

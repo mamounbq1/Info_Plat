@@ -53,6 +53,10 @@ export function AuthProvider({ children }) {
         email,
         fullName: userData.fullName,
         role: userData.role || 'student',
+        level: userData.level || '', // Student's academic level (backward compatibility)
+        // Spread all additional userData fields (class, classNameFr, classNameAr, levelCode, branchCode, etc.)
+        ...userData,
+        // Override with system fields to prevent manipulation
         approved: userData.role === 'admin' ? true : false, // Only students need approval
         status: userData.role === 'admin' ? 'active' : 'pending', // pending, active, rejected
         createdAt: new Date().toISOString(),
@@ -150,6 +154,7 @@ export function AuthProvider({ children }) {
           email: result.user.email,
           fullName: result.user.displayName || 'User',
           role: 'student',
+          level: '', // Will be set when user completes profile
           approved: false, // Students need approval
           status: 'pending',
           createdAt: new Date().toISOString(),

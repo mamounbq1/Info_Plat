@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, getDoc, setDoc, addDoc, getDocs, deleteDoc, query, orderBy, updateDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { 
   PlusIcon, 
@@ -10,14 +11,34 @@ import {
   NewspaperIcon,
   MegaphoneIcon,
   StarIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  UserGroupIcon,
+  LinkIcon,
+  PhoneIcon,
+  CheckCircleIcon,
+  CalendarIcon,
+  Squares2X2Icon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { NEWS_CATEGORIES } from '../constants/newsCategories';
+
+// ✨ NOUVEAU: Import des 7 nouveaux composants CMS modulaires
+import AnnouncementsManager from './cms/AnnouncementsManager';
+import EventsManager from './cms/EventsManager';
+import ClubsManager from './cms/ClubsManager';
+import GalleryManager from './cms/GalleryManager';
+import QuickLinksManager from './cms/QuickLinksManager';
+import ContactManager from './cms/ContactManager';
+import AboutManager from './cms/AboutManager';
+import FooterManager from './cms/FooterManager';
+
+// ✨ NEW: Hero Section Editor with Image Upload
+import HeroSectionEditor from './cms/HeroSectionEditor';
 
 export default function HomeContentManager() {
   const { isArabic } = useLanguage();
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState('hero'); // hero, features, news, testimonials, stats
+  const [activeSection, setActiveSection] = useState('hero'); // hero, features, news, testimonials, stats, etc.
   
   // Hero Section State
   const [heroContent, setHeroContent] = useState({
@@ -25,13 +46,29 @@ export default function HomeContentManager() {
     titleAr: '',
     subtitleFr: '',
     subtitleAr: '',
-    buttonText1Fr: '',
-    buttonText1Ar: '',
-    buttonText2Fr: '',
-    buttonText2Ar: '',
-    backgroundImage: '',
+    descriptionFr: '',
+    descriptionAr: '',
+    badgeFr: '',
+    badgeAr: '',
+    primaryButtonTextFr: '',
+    primaryButtonTextAr: '',
+    secondaryButtonTextFr: '',
+    secondaryButtonTextAr: '',
+    // Background settings
+    backgroundType: 'gradient', // 'gradient', 'image', 'carousel'
+    gradientColors: {
+      from: 'blue-600',
+      via: 'violet-600',
+      to: 'purple-700'
+    },
+    backgroundImages: [], // Array of uploaded images for carousel or single image
+    carouselInterval: 5000, // Carousel auto-play interval in ms
     enabled: true
   });
+
+  // Image upload states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
   // Features State
   const [features, setFeatures] = useState([]);
@@ -54,10 +91,14 @@ export default function HomeContentManager() {
   const [newsForm, setNewsForm] = useState({
     titleFr: '',
     titleAr: '',
+    excerptFr: '',
+    excerptAr: '',
     contentFr: '',
     contentAr: '',
-    imageUrl: '',
-    category: 'announcement',
+    dateFr: '',
+    dateAr: '',
+    image: '',
+    category: 'Actualités',
     enabled: true,
     publishDate: new Date().toISOString().split('T')[0]
   });
@@ -81,7 +122,7 @@ export default function HomeContentManager() {
   // Statistics State
   const [stats, setStats] = useState({
     students: { valueFr: '1000+', valueAr: '1000+', labelFr: 'Étudiants', labelAr: 'طلاب' },
-    courses: { valueFr: '50+', valueAr: '50+', labelFr: 'Cours', labelAr: 'دروس' },
+    administrativeStaff: { valueFr: '15+', valueAr: '15+', labelFr: 'Staff Administratif', labelAr: 'الموظفون الإداريون' },
     teachers: { valueFr: '20+', valueAr: '20+', labelFr: 'Enseignants', labelAr: 'معلمين' },
     satisfaction: { valueFr: '95%', valueAr: '95%', labelFr: 'Satisfaction', labelAr: 'رضا' }
   });
@@ -126,7 +167,32 @@ export default function HomeContentManager() {
       const docRef = doc(db, 'homepage', 'hero');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setHeroContent(docSnap.data());
+        const data = docSnap.data();
+        // Convert nested structure to flat structure for form
+        setHeroContent({
+          titleFr: data.title?.fr || '',
+          titleAr: data.title?.ar || '',
+          subtitleFr: data.subtitle?.fr || '',
+          subtitleAr: data.subtitle?.ar || '',
+          descriptionFr: data.description?.fr || '',
+          descriptionAr: data.description?.ar || '',
+          badgeFr: data.badge?.fr || '',
+          badgeAr: data.badge?.ar || '',
+          primaryButtonTextFr: data.primaryButtonText?.fr || '',
+          primaryButtonTextAr: data.primaryButtonText?.ar || '',
+          secondaryButtonTextFr: data.secondaryButtonText?.fr || '',
+          secondaryButtonTextAr: data.secondaryButtonText?.ar || '',
+          // Background settings
+          backgroundType: data.backgroundType || 'gradient',
+          gradientColors: data.gradientColors || {
+            from: 'blue-600',
+            via: 'violet-600',
+            to: 'purple-700'
+          },
+          backgroundImages: data.backgroundImages || [],
+          carouselInterval: data.carouselInterval || 5000,
+          enabled: data.enabled !== undefined ? data.enabled : true
+        });
       }
     } catch (error) {
       console.error('Error fetching hero:', error);
@@ -180,10 +246,137 @@ export default function HomeContentManager() {
       const docRef = doc(db, 'homepage', 'stats');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setStats(docSnap.data());
+        const data = docSnap.data();
+        // Convert stats0, stats1, stats2, stats3 format to named format for editing
+        setStats({
+          students: { 
+            valueFr: data.stats0?.value || '1000+', 
+            valueAr: data.stats0?.value || '1000+', 
+            labelFr: data.stats0?.labelFr || 'Étudiants', 
+            labelAr: data.stats0?.labelAr || 'طلاب' 
+          },
+          administrativeStaff: { 
+            valueFr: data.stats1?.value || '15+', 
+            valueAr: data.stats1?.value || '15+', 
+            labelFr: data.stats1?.labelFr || 'Staff Administratif', 
+            labelAr: data.stats1?.labelAr || 'الموظفون الإداريون' 
+          },
+          teachers: { 
+            valueFr: data.stats2?.value || '20+', 
+            valueAr: data.stats2?.value || '20+', 
+            labelFr: data.stats2?.labelFr || 'Enseignants', 
+            labelAr: data.stats2?.labelAr || 'معلمين' 
+          },
+          satisfaction: { 
+            valueFr: data.stats3?.value || '95%', 
+            valueAr: data.stats3?.value || '95%', 
+            labelFr: data.stats3?.labelFr || 'Satisfaction', 
+            labelAr: data.stats3?.labelAr || 'رضا' 
+          }
+        });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  // Image Upload Functions for Hero Section
+  const handleImageUpload = async (file) => {
+    if (!file) return null;
+
+    try {
+      setUploadingImage(true);
+      // Create unique filename
+      const timestamp = Date.now();
+      const filename = `hero-images/${timestamp}-${file.name}`;
+      const storageRef = ref(storage, filename);
+
+      // Upload file
+      await uploadBytes(storageRef, file);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+      return {
+        url: downloadURL,
+        path: filename,
+        uploadedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error(isArabic ? 'خطأ في رفع الصورة' : 'Erreur de téléchargement');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageDelete = async (imagePath) => {
+    try {
+      if (imagePath) {
+        const storageRef = ref(storage, imagePath);
+        await deleteObject(storageRef);
+        toast.success(isArabic ? 'تم حذف الصورة' : 'Image supprimée');
+      }
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error(isArabic ? 'خطأ في حذف الصورة' : 'Erreur de suppression');
+    }
+  };
+
+  const handleAddImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error(isArabic ? 'يرجى اختيار ملف صورة' : 'Veuillez sélectionner une image');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(isArabic ? 'حجم الصورة يجب أن يكون أقل من 5 ميجابايت' : 'La taille de l\'image doit être inférieure à 5 Mo');
+      return;
+    }
+
+    const uploadedImage = await handleImageUpload(file);
+    if (uploadedImage) {
+      setHeroContent(prev => ({
+        ...prev,
+        backgroundImages: [...(prev.backgroundImages || []), uploadedImage]
+      }));
+    }
+  };
+
+  const handleRemoveImage = async (index) => {
+    const imageToRemove = heroContent.backgroundImages[index];
+    if (window.confirm(isArabic ? 'هل أنت متأكد من حذف هذه الصورة؟' : 'Êtes-vous sûr de supprimer cette image?')) {
+      await handleImageDelete(imageToRemove.path);
+      setHeroContent(prev => ({
+        ...prev,
+        backgroundImages: prev.backgroundImages.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const handleReplaceImage = async (index, file) => {
+    if (!file) return;
+
+    // Delete old image
+    const oldImage = heroContent.backgroundImages[index];
+    await handleImageDelete(oldImage.path);
+
+    // Upload new image
+    const uploadedImage = await handleImageUpload(file);
+    if (uploadedImage) {
+      setHeroContent(prev => ({
+        ...prev,
+        backgroundImages: prev.backgroundImages.map((img, i) => 
+          i === index ? uploadedImage : img
+        )
+      }));
     }
   };
 
@@ -192,10 +385,42 @@ export default function HomeContentManager() {
     e.preventDefault();
     try {
       setLoading(true);
-      await setDoc(doc(db, 'homepage', 'hero'), {
-        ...heroContent,
+      // Convert flat structure to nested structure expected by LandingPage
+      const heroData = {
+        title: {
+          fr: heroContent.titleFr,
+          ar: heroContent.titleAr
+        },
+        subtitle: {
+          fr: heroContent.subtitleFr,
+          ar: heroContent.subtitleAr
+        },
+        description: {
+          fr: heroContent.descriptionFr,
+          ar: heroContent.descriptionAr
+        },
+        badge: {
+          fr: heroContent.badgeFr,
+          ar: heroContent.badgeAr
+        },
+        primaryButtonText: {
+          fr: heroContent.primaryButtonTextFr,
+          ar: heroContent.primaryButtonTextAr
+        },
+        secondaryButtonText: {
+          fr: heroContent.secondaryButtonTextFr,
+          ar: heroContent.secondaryButtonTextAr
+        },
+        // Background settings
+        backgroundType: heroContent.backgroundType,
+        gradientColors: heroContent.gradientColors,
+        backgroundImages: heroContent.backgroundImages || [],
+        carouselInterval: heroContent.carouselInterval || 5000,
+        enabled: heroContent.enabled,
         updatedAt: new Date().toISOString()
-      });
+      };
+      
+      await setDoc(doc(db, 'homepage', 'hero'), heroData);
       toast.success(isArabic ? 'تم حفظ القسم الرئيسي' : 'Section Hero sauvegardée');
     } catch (error) {
       console.error('Error saving hero:', error);
@@ -282,7 +507,7 @@ export default function HomeContentManager() {
         contentFr: '',
         contentAr: '',
         imageUrl: '',
-        category: 'announcement',
+        category: 'Actualités',
         enabled: true,
         publishDate: new Date().toISOString().split('T')[0]
       });
@@ -366,10 +591,36 @@ export default function HomeContentManager() {
     e.preventDefault();
     try {
       setLoading(true);
-      await setDoc(doc(db, 'homepage', 'stats'), {
-        ...stats,
+      // Convert named stats to stats0, stats1, stats2, stats3 format expected by useHomeContent
+      const statsData = {
+        stats0: { 
+          value: stats.students.valueFr, 
+          labelFr: stats.students.labelFr, 
+          labelAr: stats.students.labelAr,
+          icon: '👨‍🎓'
+        },
+        stats1: { 
+          value: stats.administrativeStaff.valueFr, 
+          labelFr: stats.administrativeStaff.labelFr, 
+          labelAr: stats.administrativeStaff.labelAr,
+          icon: '👔'
+        },
+        stats2: { 
+          value: stats.teachers.valueFr, 
+          labelFr: stats.teachers.labelFr, 
+          labelAr: stats.teachers.labelAr,
+          icon: '👨‍🏫'
+        },
+        stats3: { 
+          value: stats.satisfaction.valueFr, 
+          labelFr: stats.satisfaction.labelFr, 
+          labelAr: stats.satisfaction.labelAr,
+          icon: '🎓'
+        },
         updatedAt: new Date().toISOString()
-      });
+      };
+      
+      await setDoc(doc(db, 'homepage', 'stats'), statsData);
       toast.success(isArabic ? 'تم حفظ الإحصائيات' : 'Statistiques sauvegardées');
     } catch (error) {
       console.error('Error saving stats:', error);
@@ -379,75 +630,117 @@ export default function HomeContentManager() {
     }
   };
 
+  const sectionGroups = [
+    {
+      title: isArabic ? 'محتوى الصفحة الرئيسية' : 'Contenu Page d\'Accueil',
+      sections: [
+        { id: 'hero', icon: PhotoIcon, label: isArabic ? 'القسم الرئيسي' : 'Section Hero', color: 'blue' },
+        { id: 'stats', icon: ChartBarIcon, label: isArabic ? 'الإحصائيات' : 'Statistiques', color: 'indigo' },
+        { id: 'about', icon: CheckCircleIcon, label: isArabic ? 'عن الثانوية' : 'À Propos', color: 'teal' },
+        { id: 'features', icon: StarIcon, label: isArabic ? 'الميزات' : 'Fonctionnalités', color: 'yellow' }
+      ]
+    },
+    {
+      title: isArabic ? 'أخبار ومحتوى' : 'Actualités & Contenu',
+      sections: [
+        { id: 'news', icon: NewspaperIcon, label: isArabic ? 'الأخبار' : 'Actualités', color: 'red' },
+        { id: 'announcements', icon: MegaphoneIcon, label: isArabic ? 'الإعلانات' : 'Annonces', color: 'orange' },
+        { id: 'events', icon: CalendarIcon, label: isArabic ? 'الأحداث' : 'Événements', color: 'purple' },
+        { id: 'testimonials', icon: MegaphoneIcon, label: isArabic ? 'الشهادات' : 'Témoignages', color: 'pink' }
+      ]
+    },
+    {
+      title: isArabic ? 'أنشطة ومعارض' : 'Activités & Galeries',
+      sections: [
+        { id: 'clubs', icon: UserGroupIcon, label: isArabic ? 'النوادي' : 'Clubs', color: 'violet' },
+        { id: 'gallery', icon: PhotoIcon, label: isArabic ? 'المعرض' : 'Galerie', color: 'cyan' }
+      ]
+    },
+    {
+      title: isArabic ? 'اتصال وروابط' : 'Contact & Liens',
+      sections: [
+        { id: 'contact', icon: PhoneIcon, label: isArabic ? 'معلومات الاتصال' : 'Informations Contact', color: 'emerald' },
+        { id: 'quicklinks', icon: LinkIcon, label: isArabic ? 'روابط سريعة' : 'Liens Rapides', color: 'lime' },
+        { id: 'footer', icon: Squares2X2Icon, label: isArabic ? 'التذييل' : 'Footer', color: 'slate' }
+      ]
+    }
+  ];
+
+  const getColorClasses = (color, isActive) => {
+    const colors = {
+      blue: isActive ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600' : '',
+      indigo: isActive ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600' : '',
+      teal: isActive ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border-l-4 border-teal-600' : '',
+      yellow: isActive ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 border-l-4 border-yellow-600' : '',
+      red: isActive ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-l-4 border-red-600' : '',
+      orange: isActive ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-l-4 border-orange-600' : '',
+      pink: isActive ? 'bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 border-l-4 border-pink-600' : '',
+      violet: isActive ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-l-4 border-violet-600' : '',
+      cyan: isActive ? 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 border-l-4 border-cyan-600' : '',
+      emerald: isActive ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-l-4 border-emerald-600' : '',
+      lime: isActive ? 'bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 border-l-4 border-lime-600' : '',
+      slate: isActive ? 'bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-l-4 border-slate-600' : '',
+      purple: isActive ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-l-4 border-purple-600' : ''
+    };
+    return colors[color] || '';
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Section Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-        <div className="flex overflow-x-auto">
-          <button
-            onClick={() => setActiveSection('hero')}
-            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-              activeSection === 'hero'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <PhotoIcon className="w-5 h-5 inline mr-2" />
-            {isArabic ? 'القسم الرئيسي' : 'Hero Section'}
-          </button>
-          <button
-            onClick={() => setActiveSection('features')}
-            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-              activeSection === 'features'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <StarIcon className="w-5 h-5 inline mr-2" />
-            {isArabic ? 'الميزات' : 'Fonctionnalités'}
-          </button>
-          <button
-            onClick={() => setActiveSection('news')}
-            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-              activeSection === 'news'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <NewspaperIcon className="w-5 h-5 inline mr-2" />
-            {isArabic ? 'الأخبار' : 'Actualités'}
-          </button>
-          <button
-            onClick={() => setActiveSection('testimonials')}
-            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-              activeSection === 'testimonials'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <MegaphoneIcon className="w-5 h-5 inline mr-2" />
-            {isArabic ? 'الشهادات' : 'Témoignages'}
-          </button>
-          <button
-            onClick={() => setActiveSection('stats')}
-            className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-              activeSection === 'stats'
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <ChartBarIcon className="w-5 h-5 inline mr-2" />
-            {isArabic ? 'الإحصائيات' : 'Statistiques'}
-          </button>
+    <div className="flex gap-6">
+      {/* Sidebar Navigation */}
+      <div className="w-80 flex-shrink-0">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden sticky top-6">
+          <div className="p-4 bg-gradient-to-r from-blue-600 to-violet-600">
+            <h2 className="text-lg font-bold text-white">
+              {isArabic ? 'إدارة المحتوى' : 'Gestion du Contenu'}
+            </h2>
+          </div>
+          
+          <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-[calc(100vh-200px)] overflow-y-auto">
+            {sectionGroups.map((group, groupIndex) => (
+              <div key={groupIndex} className="p-2">
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 py-2">
+                  {group.title}
+                </h3>
+                <div className="space-y-1">
+                  {group.sections.map((section) => {
+                    const Icon = section.icon;
+                    const isActive = activeSection === section.id;
+                    return (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          isActive
+                            ? getColorClasses(section.color, true)
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span className="truncate">{section.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Main Content Area */}
+      <div className="flex-1 space-y-6">
       {/* Content Sections */}
+      {/* NEW: Section Visibility Manager */}
       {activeSection === 'hero' && (
-        <HeroSection 
+        <HeroSectionEditor
           heroContent={heroContent}
           setHeroContent={setHeroContent}
           handleSaveHero={handleSaveHero}
+          handleAddImage={handleAddImage}
+          handleRemoveImage={handleRemoveImage}
+          handleReplaceImage={handleReplaceImage}
+          uploadingImage={uploadingImage}
           loading={loading}
           isArabic={isArabic}
         />
@@ -496,6 +789,39 @@ export default function HomeContentManager() {
         />
       )}
 
+      {/* ✨ NOUVEAU: Sections pour les nouveaux contenus CMS */}
+      {activeSection === 'announcements' && (
+        <AnnouncementsManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'events' && (
+        <EventsManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'clubs' && (
+        <ClubsManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'gallery' && (
+        <GalleryManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'quicklinks' && (
+        <QuickLinksManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'contact' && (
+        <ContactManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'about' && (
+        <AboutManager isArabic={isArabic} />
+      )}
+
+      {activeSection === 'footer' && (
+        <FooterManager isArabic={isArabic} />
+      )}
+
       {/* Modals */}
       {showFeatureModal && (
         <FeatureModal
@@ -533,125 +859,12 @@ export default function HomeContentManager() {
           isArabic={isArabic}
         />
       )}
+      </div>
     </div>
   );
 }
 
-// Hero Section Component
-function HeroSection({ heroContent, setHeroContent, handleSaveHero, loading, isArabic }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        {isArabic ? 'تحرير القسم الرئيسي' : 'Éditer le Hero Section'}
-      </h2>
-      
-      <form onSubmit={handleSaveHero} className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'العنوان (فرنسي)' : 'Titre (Français)'}
-            </label>
-            <input
-              type="text"
-              value={heroContent.titleFr}
-              onChange={(e) => setHeroContent({ ...heroContent, titleFr: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'العنوان (عربي)' : 'Titre (Arabe)'}
-            </label>
-            <input
-              type="text"
-              value={heroContent.titleAr}
-              onChange={(e) => setHeroContent({ ...heroContent, titleAr: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              dir="rtl"
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'العنوان الفرعي (فرنسي)' : 'Sous-titre (Français)'}
-            </label>
-            <textarea
-              value={heroContent.subtitleFr}
-              onChange={(e) => setHeroContent({ ...heroContent, subtitleFr: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'العنوان الفرعي (عربي)' : 'Sous-titre (Arabe)'}
-            </label>
-            <textarea
-              value={heroContent.subtitleAr}
-              onChange={(e) => setHeroContent({ ...heroContent, subtitleAr: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              dir="rtl"
-              required
-            />
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'نص الزر 1 (فرنسي)' : 'Bouton 1 (Français)'}
-            </label>
-            <input
-              type="text"
-              value={heroContent.buttonText1Fr}
-              onChange={(e) => setHeroContent({ ...heroContent, buttonText1Fr: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'نص الزر 1 (عربي)' : 'Bouton 1 (Arabe)'}
-            </label>
-            <input
-              type="text"
-              value={heroContent.buttonText1Ar}
-              onChange={(e) => setHeroContent({ ...heroContent, buttonText1Ar: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              dir="rtl"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="heroEnabled"
-            checked={heroContent.enabled}
-            onChange={(e) => setHeroContent({ ...heroContent, enabled: e.target.checked })}
-            className="w-5 h-5 text-blue-600 rounded"
-          />
-          <label htmlFor="heroEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {isArabic ? 'تفعيل القسم' : 'Activer cette section'}
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50"
-        >
-          {loading ? (isArabic ? 'جاري الحفظ...' : 'Sauvegarde...') : (isArabic ? 'حفظ التغييرات' : 'Sauvegarder les modifications')}
-        </button>
-      </form>
-    </div>
-  );
-}
+// ====================SUB-COMPONENT SECTIONS BELOW====================
 
 // Features Section Component
 function FeaturesSection({ features, setShowFeatureModal, setEditingFeature, setFeatureForm, handleDeleteFeature, isArabic }) {
@@ -744,7 +957,7 @@ function NewsSection({ news, setShowNewsModal, setEditingNews, setNewsForm, hand
               contentFr: '',
               contentAr: '',
               imageUrl: '',
-              category: 'announcement',
+              category: 'Actualités',
               enabled: true,
               publishDate: new Date().toISOString().split('T')[0]
             });
@@ -882,6 +1095,14 @@ function TestimonialsSection({ testimonials, setShowTestimonialModal, setEditing
 
 // Stats Section Component
 function StatsSection({ stats, setStats, handleSaveStats, loading, isArabic }) {
+  // Display names for stats keys
+  const statDisplayNames = {
+    students: isArabic ? 'الطلاب' : 'Étudiants',
+    administrativeStaff: isArabic ? 'الموظفون الإداريون' : 'Staff Administratif',
+    teachers: isArabic ? 'المعلمون' : 'Enseignants',
+    satisfaction: isArabic ? 'الرضا' : 'Satisfaction'
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -891,8 +1112,8 @@ function StatsSection({ stats, setStats, handleSaveStats, loading, isArabic }) {
       <form onSubmit={handleSaveStats} className="space-y-6">
         {Object.entries(stats).map(([key, value]) => (
           <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 capitalize">
-              {key}
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+              {statDisplayNames[key] || key}
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -1181,10 +1402,11 @@ function NewsModal({ newsForm, setNewsForm, handleSaveNews, setShowNewsModal, ed
                 onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
               >
-                <option value="announcement">{isArabic ? 'إعلان' : 'Annonce'}</option>
-                <option value="news">{isArabic ? 'أخبار' : 'Actualités'}</option>
-                <option value="event">{isArabic ? 'حدث' : 'Événement'}</option>
-                <option value="update">{isArabic ? 'تحديث' : 'Mise à jour'}</option>
+                {NEWS_CATEGORIES.filter(cat => cat.value !== 'all').map(cat => (
+                  <option key={cat.value} value={cat.value}>
+                    {isArabic ? cat.label.ar : cat.label.fr}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

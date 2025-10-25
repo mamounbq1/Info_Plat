@@ -13,8 +13,32 @@ import { db } from '../config/firebase';
  * 
  * @returns {Object} { settings, loading, updateSettings, refreshSettings }
  */
+const CACHE_KEY = 'siteSettings_cache';
+const CACHE_TIMESTAMP_KEY = 'siteSettings_cache_timestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 export function useSiteSettings() {
-  const [settings, setSettings] = useState({
+  // Try to load cached settings from localStorage immediately
+  const getCachedSettings = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10);
+        if (age < CACHE_DURATION) {
+          return JSON.parse(cached);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to read cached settings:', error);
+    }
+    return null;
+  };
+
+  const cachedSettings = getCachedSettings();
+  
+  const [settings, setSettings] = useState(cachedSettings || {
     schoolNameFr: 'EduPlatform',
     schoolNameAr: 'منصة التعليم',
     logoUrl: '',
@@ -22,7 +46,7 @@ export function useSiteSettings() {
     email: '',
     address: '',
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedSettings); // If we have cache, we're not loading
 
   useEffect(() => {
     fetchSettings();
@@ -38,6 +62,15 @@ export function useSiteSettings() {
       if (settingsDoc.exists()) {
         const data = settingsDoc.data();
         setSettings(data);
+        
+        // Cache the settings in localStorage
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+        } catch (error) {
+          console.warn('Failed to cache settings:', error);
+        }
+        
         console.log('✅ [useSiteSettings] Settings loaded:', data);
       } else {
         console.log('⚠️ [useSiteSettings] No settings found, using defaults');
@@ -62,6 +95,15 @@ export function useSiteSettings() {
       });
       
       setSettings(newSettings);
+      
+      // Update cache immediately
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(newSettings));
+        localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
+      } catch (error) {
+        console.warn('Failed to update cache:', error);
+      }
+      
       console.log('✅ [useSiteSettings] Settings updated successfully');
       
       return { success: true };

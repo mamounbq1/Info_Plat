@@ -78,6 +78,7 @@ export default function CourseView() {
   };
 
   const getFileIcon = (fileType) => {
+    if (!fileType) return <DocumentIcon className="w-5 h-5" />;
     if (fileType.startsWith('image/')) return <PhotoIcon className="w-5 h-5" />;
     if (fileType.startsWith('audio/')) return <MusicalNoteIcon className="w-5 h-5" />;
     if (fileType.startsWith('video/')) return <VideoCameraIcon className="w-5 h-5" />;
@@ -85,6 +86,7 @@ export default function CourseView() {
   };
 
   const getFileTypeName = (fileType) => {
+    if (!fileType) return 'Document';
     if (fileType.startsWith('image/')) return 'Image';
     if (fileType.startsWith('audio/')) return 'Audio';
     if (fileType.startsWith('video/')) return 'Video';
@@ -104,7 +106,7 @@ export default function CourseView() {
   };
 
   const renderFilePreview = (file) => {
-    if (!file) return null;
+    if (!file || !file.type) return null;
 
     // Image files
     if (file.type.startsWith('image/')) {
@@ -241,11 +243,9 @@ export default function CourseView() {
                 {course.category}
               </span>
             )}
-            {course.level && (
+            {course.targetLevels && course.targetLevels.length > 0 && (
               <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold">
-                {course.level === 'beginner' && (isArabic ? 'مبتدئ' : 'Débutant')}
-                {course.level === 'intermediate' && (isArabic ? 'متوسط' : 'Intermédiaire')}
-                {course.level === 'advanced' && (isArabic ? 'متقدم' : 'Avancé')}
+                🎓 {course.targetLevels.length} {isArabic ? 'مستوى' : 'niveau(x)'}
               </span>
             )}
             {course.duration && (

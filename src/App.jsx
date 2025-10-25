@@ -10,19 +10,60 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
-import SetupAdmin from './pages/SetupAdmin';
-import CreateProfile from './pages/CreateProfile';
 import PendingApproval from './pages/PendingApproval';
 import StudentDashboard from './pages/StudentDashboard';
 import EnhancedStudentDashboard from './pages/EnhancedStudentDashboard';
+import StudentPerformance from './pages/StudentPerformance';
+import StudentQuizzes from './pages/StudentQuizzes';
+import StudentExercises from './pages/StudentExercises';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminAnalytics from './pages/AdminAnalytics';
+import AdminCourses from './pages/AdminCourses';
+import AdminUsers from './pages/AdminUsers';
+import AdminQuizzes from './pages/AdminQuizzes';
+import AdminExercises from './pages/AdminExercises';
 import TeacherDashboard from './pages/TeacherDashboard';
 import CourseView from './pages/CourseView';
+import QuizTaking from './pages/QuizTaking';
+import QuizResults from './pages/QuizResults';
 import Settings from './pages/Settings';
 import MyCourses from './pages/MyCourses';
 import AchievementsPage from './pages/AchievementsPage';
 import Bookmarks from './pages/Bookmarks';
 import AddSampleCourses from './pages/AddSampleCourses';
+import DatabaseSeeder from './pages/DatabaseSeeder';
+import AddTestData from './pages/AddTestData';
+import TestStudentClass from './pages/TestStudentClass';
+import VerifyStudentsClasses from './pages/VerifyStudentsClasses';
+import FixClassesLevelBranch from './pages/FixClassesLevelBranch';
+import DiagnoseClassesStructure from './pages/DiagnoseClassesStructure';
+import FixExistingStudents from './pages/FixExistingStudents';
+
+// Public Pages
+import AboutPage from './pages/AboutPage';
+import NewsPage from './pages/NewsPage';
+import NewsDetailPage from './pages/NewsDetailPage';
+import GalleryPage from './pages/GalleryPage';
+import ClubsPage from './pages/ClubsPage';
+import ClubDetailPage from './pages/ClubDetailPage';
+import ContactPage from './pages/ContactPage';
+import AnnouncementsPage from './pages/AnnouncementsPage';
+import EventsPage from './pages/EventsPage';
+import TeachersPage from './pages/TeachersPage';
+
+// New Public Pages
+import AcademicCalendarPage from './pages/AcademicCalendarPage';
+import CourseCatalogPage from './pages/CourseCatalogPage';
+import EnrollmentPage from './pages/EnrollmentPage';
+import ResultsPortalPage from './pages/ResultsPortalPage';
+import TimetablePage from './pages/TimetablePage';
+import FAQPage from './pages/FAQPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import DocsPage from './pages/DocsPage';
+import SitemapPage from './pages/SitemapPage';
+import SearchPage from './pages/SearchPage';
+import LibraryPage from './pages/LibraryPage';
 
 // Check if Firebase is configured
 const isFirebaseConfigured = import.meta.env.VITE_FIREBASE_API_KEY && 
@@ -70,15 +111,15 @@ function DashboardRouter() {
     );
   }
   
-  // If profile still doesn't exist after waiting, redirect to create profile
+  // If profile still doesn't exist after waiting, redirect to login
   if (currentUser && !userProfile && profileCheckComplete) {
-    return <Navigate to="/create-profile" replace />;
+    return <Navigate to="/login" replace />;
   }
   
   // Route based on user role
   if (!userProfile?.role) {
-    // If no role is set, redirect to create profile
-    return <Navigate to="/create-profile" replace />;
+    // If no role is set, redirect to login
+    return <Navigate to="/login" replace />;
   }
   
   // Check if student needs approval (students only, not teachers or admins)
@@ -144,12 +185,37 @@ function App() {
             />
             
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/setup-admin" element={<SetupAdmin />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/news" element={<NewsPage />} />
+              <Route path="/news/:id" element={<NewsDetailPage />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/clubs" element={<ClubsPage />} />
+              <Route path="/clubs/:id" element={<ClubDetailPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/announcements" element={<AnnouncementsPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/teachers" element={<TeachersPage />} />
+              
+              {/* New Public Pages */}
+              <Route path="/calendar" element={<AcademicCalendarPage />} />
+              <Route path="/courses" element={<CourseCatalogPage />} />
+              <Route path="/enroll" element={<EnrollmentPage />} />
+              <Route path="/results" element={<ResultsPortalPage />} />
+              <Route path="/timetable" element={<TimetablePage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/sitemap" element={<SitemapPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/library" element={<LibraryPage />} />
+              
+              {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/create-profile" element={<CreateProfile />} />
               <Route 
                 path="/pending-approval" 
                 element={
@@ -169,10 +235,55 @@ function App() {
               />
               
               <Route 
+                path="/student/performance" 
+                element={
+                  <ProtectedRoute>
+                    <StudentPerformance />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/student/quizzes" 
+                element={
+                  <ProtectedRoute>
+                    <StudentQuizzes />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/student/exercises" 
+                element={
+                  <ProtectedRoute>
+                    <StudentExercises />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
                 path="/course/:courseId" 
                 element={
                   <ProtectedRoute>
                     <CourseView />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/quiz/:quizId" 
+                element={
+                  <ProtectedRoute>
+                    <QuizTaking />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/quiz-results/:quizId/:attemptIndex" 
+                element={
+                  <ProtectedRoute>
+                    <QuizResults />
                   </ProtectedRoute>
                 } 
               />
@@ -218,6 +329,115 @@ function App() {
                 element={
                   <ProtectedRoute adminOnly={true}>
                     <AddSampleCourses />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/seed-database" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <DatabaseSeeder />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/add-test-data" 
+                element={
+                  <ProtectedRoute>
+                    <AddTestData />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/test-student-class" 
+                element={
+                  <ProtectedRoute>
+                    <TestStudentClass />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/verify-students-classes" 
+                element={
+                  <ProtectedRoute>
+                    <VerifyStudentsClasses />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/fix-classes-level-branch" 
+                element={
+                  <ProtectedRoute>
+                    <FixClassesLevelBranch />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/diagnose-classes" 
+                element={
+                  <ProtectedRoute>
+                    <DiagnoseClassesStructure />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/fix-existing-students" 
+                element={
+                  <ProtectedRoute>
+                    <FixExistingStudents />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Admin Routes */}
+              <Route 
+                path="/admin/analytics" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminAnalytics />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/courses" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminCourses />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/quizzes" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminQuizzes />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/exercises" 
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminExercises />
                   </ProtectedRoute>
                 } 
               />

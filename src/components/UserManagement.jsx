@@ -10,7 +10,8 @@ import {
   ClockIcon,
   TrashIcon,
   PencilIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -23,16 +24,19 @@ export default function UserManagement() {
   const [filterRole, setFilterRole] = useState('all'); // all, student, teacher, admin
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   
   const [teacherForm, setTeacherForm] = useState({
     fullName: '',
     email: '',
     password: '',
-    role: 'teacher'
+    role: 'teacher',
+    subjectCode: '' // NEW: Subject assignment for teachers
   });
 
   useEffect(() => {
     fetchUsers();
+    fetchSubjects();
   }, []);
 
   const fetchUsers = async () => {
@@ -50,6 +54,25 @@ export default function UserManagement() {
       toast.error(isArabic ? 'خطأ في تحميل المستخدمين' : 'Erreur lors du chargement des utilisateurs');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSubjects = async () => {
+    try {
+      const subjectsQuery = query(
+        collection(db, 'subjects'),
+        where('enabled', '==', true),
+        orderBy('order', 'asc')
+      );
+      const snapshot = await getDocs(subjectsQuery);
+      const subjectsData = snapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+      setSubjects(subjectsData);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      // Don't show error toast as subjects are optional for admins
     }
   };
 
@@ -167,6 +190,16 @@ export default function UserManagement() {
   const handleAddTeacher = async (e) => {
     e.preventDefault();
     
+    // Validate subject for teachers
+    if (teacherForm.role === 'teacher' && !teacherForm.subjectCode) {
+      toast.error(
+        isArabic 
+          ? 'يرجى اختيار المادة التي سيدرسها المعلم'
+          : 'Veuillez sélectionner la matière de l\'enseignant'
+      );
+      return;
+    }
+    
     try {
       setLoading(true);
       
@@ -177,8 +210,21 @@ export default function UserManagement() {
         teacherForm.password
       );
       
+      // Get subject details if teacher
+      let subjectData = null;
+      if (teacherForm.role === 'teacher' && teacherForm.subjectCode) {
+        const subject = subjects.find(s => s.code === teacherForm.subjectCode);
+        if (subject) {
+          subjectData = {
+            subjectCode: subject.code,
+            subjectNameFr: subject.nameFr,
+            subjectNameAr: subject.nameAr
+          };
+        }
+      }
+      
       // Create Firestore profile
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
+      const userProfile = {
         email: teacherForm.email,
         fullName: teacherForm.fullName,
         role: teacherForm.role,
@@ -188,7 +234,16 @@ export default function UserManagement() {
         createdBy: 'admin',
         progress: {},
         enrolledCourses: []
-      });
+      };
+      
+      // Add subject data for teachers
+      if (subjectData) {
+        userProfile.subject = subjectData.subjectCode;
+        userProfile.subjectNameFr = subjectData.subjectNameFr;
+        userProfile.subjectNameAr = subjectData.subjectNameAr;
+      }
+      
+      await setDoc(doc(db, 'users', userCredential.user.uid), userProfile);
       
       toast.success(
         isArabic 
@@ -201,7 +256,8 @@ export default function UserManagement() {
         fullName: '',
         email: '',
         password: '',
-        role: 'teacher'
+        role: 'teacher',
+        subjectCode: ''
       });
       fetchUsers();
     } catch (error) {
@@ -397,6 +453,9 @@ export default function UserManagement() {
                     {isArabic ? 'الدور' : 'Rôle'}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    {isArabic ? 'المادة' : 'Matière'}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     {isArabic ? 'الحالة' : 'Statut'}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
@@ -441,6 +500,26 @@ export default function UserManagement() {
                           : (isArabic ? 'طالب' : 'Élève')
                         }
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {user.role === 'teacher' && user.subject ? (
+                        <div className="flex items-center gap-1">
+                          <BookOpenIcon className="w-4 h-4 text-blue-500" />
+                          <span className="text-gray-900 dark:text-white font-medium">
+                            {isArabic ? user.subjectNameAr : user.subjectNameFr}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ({user.subject})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">
+                          {user.role === 'teacher' 
+                            ? (isArabic ? 'لا توجد مادة' : 'Aucune matière')
+                            : '-'
+                          }
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -505,6 +584,7 @@ export default function UserManagement() {
           teacherForm={teacherForm}
           setTeacherForm={setTeacherForm}
           loading={loading}
+          subjects={subjects}
           onSubmit={handleAddTeacher}
           onClose={() => {
             setShowAddTeacherModal(false);
@@ -512,7 +592,8 @@ export default function UserManagement() {
               fullName: '',
               email: '',
               password: '',
-              role: 'teacher'
+              role: 'teacher',
+              subjectCode: ''
             });
           }}
         />
@@ -546,10 +627,10 @@ function StatCard({ title, value, icon, color }) {
 }
 
 // Add Teacher Modal Component
-function AddTeacherModal({ isArabic, teacherForm, setTeacherForm, loading, onSubmit, onClose }) {
+function AddTeacherModal({ isArabic, teacherForm, setTeacherForm, loading, subjects, onSubmit, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
           {isArabic ? 'إضافة معلم أو مسؤول' : 'Ajouter Enseignant ou Admin'}
         </h2>
@@ -601,13 +682,45 @@ function AddTeacherModal({ isArabic, teacherForm, setTeacherForm, loading, onSub
             </label>
             <select
               value={teacherForm.role}
-              onChange={(e) => setTeacherForm({ ...teacherForm, role: e.target.value })}
+              onChange={(e) => setTeacherForm({ ...teacherForm, role: e.target.value, subjectCode: '' })}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="teacher">{isArabic ? 'معلم' : 'Enseignant'}</option>
               <option value="admin">{isArabic ? 'مسؤول' : 'Administrateur'}</option>
             </select>
           </div>
+
+          {/* Subject Selection - Only for Teachers */}
+          {teacherForm.role === 'teacher' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <BookOpenIcon className="w-4 h-4 inline-block mr-1" />
+                {isArabic ? 'المادة المدرسة' : 'Matière enseignée'}
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <select
+                value={teacherForm.subjectCode}
+                onChange={(e) => setTeacherForm({ ...teacherForm, subjectCode: e.target.value })}
+                required={teacherForm.role === 'teacher'}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">
+                  {isArabic ? 'اختر المادة' : 'Sélectionner une matière'}
+                </option>
+                {subjects.map((subject) => (
+                  <option key={subject.docId} value={subject.code}>
+                    {isArabic ? subject.nameAr : subject.nameFr} ({subject.code})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {isArabic 
+                  ? 'كل معلم يجب أن يكون مرتبط بمادة واحدة فقط'
+                  : 'Chaque enseignant doit être associé à une seule matière'
+                }
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

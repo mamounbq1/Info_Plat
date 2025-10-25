@@ -1,307 +1,31 @@
-import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { 
-  PlusIcon, 
-  TrashIcon, 
   DocumentIcon, 
-  PencilIcon,
-  FolderIcon,
   AcademicCapIcon,
-  UsersIcon,
-  BookOpenIcon,
-  ChartBarIcon,
   HomeIcon,
-  Cog6ToothIcon,
-  CheckCircleIcon,
-  XMarkIcon,
-  DocumentDuplicateIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
-import toast from 'react-hot-toast';
-import FileUpload from '../components/FileUpload';
-import UserManagement from '../components/UserManagement';
 import Sidebar from '../components/Sidebar';
 import HomeContentManager from '../components/HomeContentManager';
-import AnalyticsDashboard from '../components/AnalyticsDashboard';
-import SiteSettingsManager from '../components/SiteSettingsManager';
+import GeneralSettingsManager from '../components/GeneralSettingsManager';
+import AcademicStructureManagement from '../components/AcademicStructureManagement';
+import PageManager from '../components/PageManager';
 
-const CATEGORIES = [
-  { id: 'mathematics', fr: 'Mathématiques', ar: 'الرياضيات' },
-  { id: 'physics', fr: 'Physique', ar: 'الفيزياء' },
-  { id: 'chemistry', fr: 'Chimie', ar: 'الكيمياء' },
-  { id: 'biology', fr: 'Biologie', ar: 'الأحياء' },
-  { id: 'computer', fr: 'Informatique', ar: 'علوم الحاسوب' },
-  { id: 'languages', fr: 'Langues', ar: 'اللغات' },
-  { id: 'history', fr: 'Histoire', ar: 'التاريخ' },
-  { id: 'geography', fr: 'Géographie', ar: 'الجغرافيا' },
-  { id: 'philosophy', fr: 'Philosophie', ar: 'الفلسفة' },
-  { id: 'other', fr: 'Autre', ar: 'أخرى' }
-];
+
 
 export default function AdminDashboard() {
   const { userProfile } = useAuth();
-  const { t, isArabic } = useLanguage();
-  const [courses, setCourses] = useState([]);
-  const [showCourseModal, setShowCourseModal] = useState(false);
-  const [editingCourse, setEditingCourse] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'courses', 'users', 'homepage', 'settings'
-  const [selectedCourses, setSelectedCourses] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const { isArabic } = useLanguage();
+  const [activeTab, setActiveTab] = useState('content'); // 'content', 'structure', 'pages'
+  const [contentSubTab, setContentSubTab] = useState('settings'); // 'settings', 'homepage'
   
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
-  const [courseForm, setCourseForm] = useState({
-    titleFr: '',
-    titleAr: '',
-    descriptionFr: '',
-    descriptionAr: '',
-    category: 'mathematics',
-    level: 'beginner',
-    duration: '',
-    files: [],
-    videoUrl: '',
-    published: false,
-    tags: []
-  });
 
-  const [newTag, setNewTag] = useState('');
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      const coursesQuery = query(collection(db, 'courses'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(coursesQuery);
-      const coursesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCourses(coursesData);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      toast.error(isArabic ? 'خطأ في تحميل الدروس' : 'Erreur lors du chargement des cours');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFilesUploaded = (uploadedFiles) => {
-    setCourseForm({ ...courseForm, files: uploadedFiles });
-  };
-
-  const handleAddTag = () => {
-    if (newTag.trim() && !courseForm.tags.includes(newTag.trim())) {
-      setCourseForm({
-        ...courseForm,
-        tags: [...courseForm.tags, newTag.trim()]
-      });
-      setNewTag('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove) => {
-    setCourseForm({
-      ...courseForm,
-      tags: courseForm.tags.filter(tag => tag !== tagToRemove)
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (courseForm.files.length === 0 && !courseForm.videoUrl) {
-      toast.error(
-        isArabic
-          ? 'يرجى إضافة ملفات أو رابط فيديو'
-          : 'Veuillez ajouter des fichiers ou un lien vidéo'
-      );
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      const courseData = {
-        ...courseForm,
-        updatedAt: new Date().toISOString(),
-        createdBy: userProfile?.fullName || 'Admin'
-      };
-
-      if (editingCourse) {
-        // Update existing course
-        await updateDoc(doc(db, 'courses', editingCourse.id), courseData);
-        toast.success(isArabic ? 'تم تحديث الدرس بنجاح' : 'Cours mis à jour avec succès');
-      } else {
-        // Create new course
-        courseData.createdAt = new Date().toISOString();
-        await addDoc(collection(db, 'courses'), courseData);
-        toast.success(isArabic ? 'تم إضافة الدرس بنجاح' : 'Cours ajouté avec succès');
-      }
-      
-      closeModal();
-      fetchCourses();
-    } catch (error) {
-      console.error('Error saving course:', error);
-      toast.error(isArabic ? 'خطأ في حفظ الدرس' : 'Erreur lors de l\'enregistrement du cours');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (course) => {
-    setEditingCourse(course);
-    setCourseForm({
-      titleFr: course.titleFr,
-      titleAr: course.titleAr,
-      descriptionFr: course.descriptionFr,
-      descriptionAr: course.descriptionAr,
-      category: course.category || 'mathematics',
-      level: course.level || 'beginner',
-      duration: course.duration || '',
-      files: course.files || [],
-      videoUrl: course.videoUrl || '',
-      published: course.published,
-      tags: course.tags || []
-    });
-    setShowCourseModal(true);
-  };
-
-  const handleDelete = async (courseId) => {
-    if (window.confirm(isArabic ? 'هل أنت متأكد من حذف هذا الدرس؟' : 'Êtes-vous sûr de vouloir supprimer ce cours?')) {
-      try {
-        await deleteDoc(doc(db, 'courses', courseId));
-        toast.success(isArabic ? 'تم حذف الدرس بنجاح' : 'Cours supprimé avec succès');
-        fetchCourses();
-      } catch (error) {
-        console.error('Error deleting course:', error);
-        toast.error(isArabic ? 'خطأ في حذف الدرس' : 'Erreur lors de la suppression');
-      }
-    }
-  };
-
-  const handleDuplicate = async (course) => {
-    try {
-      setLoading(true);
-      const duplicatedCourse = {
-        ...course,
-        titleFr: `${course.titleFr} (Copie)`,
-        titleAr: `${course.titleAr} (نسخة)`,
-        published: false,
-        createdAt: new Date().toISOString(),
-        createdBy: userProfile?.fullName || 'Admin'
-      };
-      delete duplicatedCourse.id;
-      await addDoc(collection(db, 'courses'), duplicatedCourse);
-      toast.success(isArabic ? 'تم تكرار الدرس بنجاح' : 'Cours dupliqué avec succès');
-      fetchCourses();
-    } catch (error) {
-      console.error('Error duplicating course:', error);
-      toast.error(isArabic ? 'خطأ في التكرار' : 'Erreur lors de la duplication');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBulkAction = async (action) => {
-    if (selectedCourses.length === 0) {
-      toast.error(isArabic ? 'الرجاء اختيار دروس' : 'Veuillez sélectionner des cours');
-      return;
-    }
-
-    if (action === 'delete') {
-      if (!window.confirm(isArabic ? `حذف ${selectedCourses.length} دروس؟` : `Supprimer ${selectedCourses.length} cours?`)) {
-        return;
-      }
-    }
-
-    try {
-      setLoading(true);
-      
-      for (const courseId of selectedCourses) {
-        if (action === 'delete') {
-          await deleteDoc(doc(db, 'courses', courseId));
-        } else if (action === 'publish') {
-          await updateDoc(doc(db, 'courses', courseId), { published: true });
-        } else if (action === 'unpublish') {
-          await updateDoc(doc(db, 'courses', courseId), { published: false });
-        }
-      }
-      
-      const actionMessages = {
-        delete: isArabic ? 'تم حذف الدروس' : 'Cours supprimés',
-        publish: isArabic ? 'تم نشر الدروس' : 'Cours publiés',
-        unpublish: isArabic ? 'تم إلغاء نشر الدروس' : 'Cours dépubliés'
-      };
-      
-      toast.success(actionMessages[action]);
-      setSelectedCourses([]);
-      fetchCourses();
-    } catch (error) {
-      console.error(`Error in bulk ${action}:`, error);
-      toast.error(isArabic ? 'خطأ في العملية' : 'Erreur dans l\'opération');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleCourseSelection = (courseId) => {
-    setSelectedCourses(prev => 
-      prev.includes(courseId) 
-        ? prev.filter(id => id !== courseId)
-        : [...prev, courseId]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedCourses.length === filteredCourses.length) {
-      setSelectedCourses([]);
-    } else {
-      setSelectedCourses(filteredCourses.map(c => c.id));
-    }
-  };
-
-  // Filter courses
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = 
-      course.titleFr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.titleAr?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || course.category === filterCategory;
-    const matchesStatus = filterStatus === 'all' || 
-      (filterStatus === 'published' && course.published) ||
-      (filterStatus === 'draft' && !course.published);
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
-  const closeModal = () => {
-    setShowCourseModal(false);
-    setEditingCourse(null);
-    setCourseForm({
-      titleFr: '',
-      titleAr: '',
-      descriptionFr: '',
-      descriptionAr: '',
-      category: 'mathematics',
-      level: 'beginner',
-      duration: '',
-      files: [],
-      videoUrl: '',
-      published: false,
-      tags: []
-    });
-  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
@@ -324,561 +48,102 @@ export default function AdminDashboard() {
                 {isArabic ? 'لوحة تحكم المسؤول' : 'Tableau de bord Administrateur'}
               </h1>
               <p className="text-purple-100">
-                {isArabic ? 'إدارة كاملة للموقع والمستخدمين' : 'Gestion complète du site et des utilisateurs'}
+                {isArabic ? 'إدارة كاملة للموقع' : 'Gestion complète du site'}
               </p>
             </div>
-            {activeTab === 'courses' && (
-              <button
-                onClick={() => setShowCourseModal(true)}
-                className="bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:bg-purple-50 transition flex items-center gap-2 shadow-md"
-              >
-                <PlusIcon className="w-5 h-5" />
-                {isArabic ? 'إضافة درس جديد' : 'Nouveau cours'}
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Main Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
           <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => setActiveTab('analytics')}
+              onClick={() => setActiveTab('content')}
               className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-                activeTab === 'analytics'
-                  ? 'border-b-2 border-purple-600 text-purple-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
-              }`}
-            >
-              <ChartBarIcon className="w-5 h-5 inline-block mr-2" />
-              {isArabic ? 'التحليلات' : 'Analytics'}
-            </button>
-            <button
-              onClick={() => setActiveTab('courses')}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-                activeTab === 'courses'
-                  ? 'border-b-2 border-purple-600 text-purple-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
-              }`}
-            >
-              <BookOpenIcon className="w-5 h-5 inline-block mr-2" />
-              {isArabic ? 'الدروس' : 'Cours'}
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-                activeTab === 'users'
-                  ? 'border-b-2 border-purple-600 text-purple-600'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
-              }`}
-            >
-              <UsersIcon className="w-5 h-5 inline-block mr-2" />
-              {isArabic ? 'المستخدمون' : 'Utilisateurs'}
-            </button>
-            <button
-              onClick={() => setActiveTab('homepage')}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-                activeTab === 'homepage'
+                activeTab === 'content'
                   ? 'border-b-2 border-purple-600 text-purple-600'
                   : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
               }`}
             >
               <HomeIcon className="w-5 h-5 inline-block mr-2" />
-              {isArabic ? 'الصفحة الرئيسية' : 'Page d\'Accueil'}
+              {isArabic ? 'محتوى الموقع' : 'Contenu du Site'}
             </button>
             <button
-              onClick={() => setActiveTab('settings')}
+              onClick={() => setActiveTab('structure')}
               className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
-                activeTab === 'settings'
+                activeTab === 'structure'
                   ? 'border-b-2 border-purple-600 text-purple-600'
                   : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
               }`}
             >
-              <Cog6ToothIcon className="w-5 h-5 inline-block mr-2" />
-              {isArabic ? 'الإعدادات' : 'Paramètres'}
+              <AcademicCapIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'هيكل المدرسة' : 'Structure de l\'École'}
+            </button>
+            <button
+              onClick={() => setActiveTab('pages')}
+              className={`flex-1 py-4 px-6 text-sm font-medium transition whitespace-nowrap ${
+                activeTab === 'pages'
+                  ? 'border-b-2 border-purple-600 text-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-purple-600'
+              }`}
+            >
+              <DocumentIcon className="w-5 h-5 inline-block mr-2" />
+              {isArabic ? 'الصفحات' : 'Pages'}
             </button>
           </div>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'analytics' ? (
-          <AnalyticsDashboard />
-        ) : activeTab === 'users' ? (
-          <UserManagement />
-        ) : activeTab === 'homepage' ? (
-          <HomeContentManager />
-        ) : activeTab === 'settings' ? (
-          <SiteSettingsManager />
-        ) : (
-          <>
-        {/* Statistics */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-md p-6">
-            <FolderIcon className="w-10 h-10 mb-3 opacity-80" />
-            <h3 className="text-3xl font-bold mb-1">{courses.length}</h3>
-            <p className="text-blue-100">{isArabic ? 'إجمالي الدروس' : 'Total des cours'}</p>
-          </div>
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl shadow-md p-6">
-            <AcademicCapIcon className="w-10 h-10 mb-3 opacity-80" />
-            <h3 className="text-3xl font-bold mb-1">{courses.filter(c => c.published).length}</h3>
-            <p className="text-green-100">{isArabic ? 'الدروس المنشورة' : 'Cours publiés'}</p>
-          </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl shadow-md p-6">
-            <DocumentIcon className="w-10 h-10 mb-3 opacity-80" />
-            <h3 className="text-3xl font-bold mb-1">
-              {courses.reduce((acc, course) => acc + (course.files?.length || 0), 0)}
-            </h3>
-            <p className="text-purple-100">{isArabic ? 'الملفات المرفوعة' : 'Fichiers téléchargés'}</p>
-          </div>
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl shadow-md p-6">
-            <PencilIcon className="w-10 h-10 mb-3 opacity-80" />
-            <h3 className="text-3xl font-bold mb-1">{courses.filter(c => !c.published).length}</h3>
-            <p className="text-orange-100">{isArabic ? 'المسودات' : 'Brouillons'}</p>
-          </div>
-        </div>
-
-        {/* Courses List */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {isArabic ? 'جميع الدروس' : 'Tous les cours'}
-            </h2>
-            
-            {/* Search and Filters */}
-            <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-              <div className="relative flex-1 lg:flex-initial lg:w-64">
-                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={isArabic ? 'بحث...' : 'Rechercher...'}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">{isArabic ? 'كل الفئات' : 'Toutes catégories'}</option>
-                {CATEGORIES.map(cat => (
-                  <option key={cat.id} value={cat.id}>{isArabic ? cat.ar : cat.fr}</option>
-                ))}
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">{isArabic ? 'كل الحالات' : 'Tous statuts'}</option>
-                <option value="published">{isArabic ? 'منشور' : 'Publié'}</option>
-                <option value="draft">{isArabic ? 'مسودة' : 'Brouillon'}</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* Bulk Actions Bar */}
-          {selectedCourses.length > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
-                  {selectedCourses.length} {isArabic ? 'دروس محددة' : 'cours sélectionnés'}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleBulkAction('publish')}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
-                  >
-                    <CheckCircleIcon className="w-4 h-4" />
-                    {isArabic ? 'نشر' : 'Publier'}
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('unpublish')}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                    {isArabic ? 'إلغاء النشر' : 'Dépublier'}
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('delete')}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                    {isArabic ? 'حذف' : 'Supprimer'}
-                  </button>
-                  <button
-                    onClick={() => setSelectedCourses([])}
-                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition"
-                  >
-                    {isArabic ? 'إلغاء' : 'Annuler'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            </div>
-          ) : filteredCourses.length === 0 ? (
-            <div className="text-center py-12">
-              <DocumentIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">
-                {isArabic ? 'لا توجد دروس. أضف أول درس!' : 'Aucun cours. Ajoutez votre premier cours!'}
-              </p>
-              <button
-                onClick={() => setShowCourseModal(true)}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-              >
-                {isArabic ? 'إضافة درس' : 'Ajouter un cours'}
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Select All Checkbox */}
-              {courses.length > 0 && (
-                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={selectedCourses.length === filteredCourses.length && filteredCourses.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {isArabic ? 'تحديد الكل' : 'Sélectionner tout'}
-                  </span>
-                </div>
-              )}
-              
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className={`border rounded-lg p-5 hover:shadow-lg transition ${
-                    selectedCourses.includes(course.id)
-                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700'
+        {activeTab === 'content' ? (
+          // Tab 1: Contenu du Site avec Sidebar
+          <div className="flex gap-6">
+            {/* Sidebar pour Contenu */}
+            <div className="w-64 bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex-shrink-0">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                {isArabic ? 'إدارة المحتوى' : 'Gestion du Contenu'}
+              </h3>
+              <nav className="space-y-2">
+                <button
+                  onClick={() => setContentSubTab('settings')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
+                    contentSubTab === 'settings'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <div className="flex items-start gap-3 mb-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedCourses.includes(course.id)}
-                      onChange={() => toggleCourseSelection(course.id)}
-                      className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white flex-1">
-                          {isArabic ? course.titleAr : course.titleFr}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          course.published 
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                        }`}>
-                          {course.published 
-                            ? (isArabic ? 'منشور' : 'Publié')
-                            : (isArabic ? 'مسودة' : 'Brouillon')
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2 ml-7">
-                    {isArabic ? course.descriptionAr : course.descriptionFr}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 mb-3 ml-7">
-                    {course.category && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                        {CATEGORIES.find(c => c.id === course.category)?.[isArabic ? 'ar' : 'fr']}
-                      </span>
-                    )}
-                    {course.files && course.files.length > 0 && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                        {course.files.length} {isArabic ? 'ملف' : 'fichier(s)'}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700 ml-7">
-                    <button
-                      onClick={() => handleEdit(course)}
-                      className="flex-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition text-sm"
-                      title={isArabic ? 'تعديل' : 'Modifier'}
-                    >
-                      <PencilIcon className="w-4 h-4 inline mr-1" />
-                      {isArabic ? 'تعديل' : 'Modifier'}
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(course)}
-                      className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-3 py-2 rounded-lg font-medium hover:bg-purple-100 dark:hover:bg-purple-900/50 transition text-sm"
-                      title={isArabic ? 'تكرار' : 'Dupliquer'}
-                    >
-                      <DocumentDuplicateIcon className="w-4 h-4 inline" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(course.id)}
-                      className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/50 transition text-sm"
-                      title={isArabic ? 'حذف' : 'Supprimer'}
-                    >
-                      <TrashIcon className="w-4 h-4 inline" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              </div>
-            </>
-          )}
-        </div>
-          </>
-        )}
-
-      {/* Course Modal */}
-      {showCourseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full my-8 p-8 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              {editingCourse
-                ? (isArabic ? 'تعديل الدرس' : 'Modifier le cours')
-                : (isArabic ? 'إضافة درس جديد' : 'Nouveau cours')
-              }
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'العنوان (فرنسي) *' : 'Titre (Français) *'}
-                  </label>
-                  <input
-                    type="text"
-                    value={courseForm.titleFr}
-                    onChange={(e) => setCourseForm({ ...courseForm, titleFr: e.target.value })}
-                    required
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Introduction aux mathématiques"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'العنوان (عربي) *' : 'Titre (Arabe) *'}
-                  </label>
-                  <input
-                    type="text"
-                    value={courseForm.titleAr}
-                    onChange={(e) => setCourseForm({ ...courseForm, titleAr: e.target.value })}
-                    required
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    dir="rtl"
-                    placeholder="مقدمة في الرياضيات"
-                  />
-                </div>
-              </div>
-
-              {/* Descriptions */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'الوصف (فرنسي) *' : 'Description (Français) *'}
-                  </label>
-                  <textarea
-                    value={courseForm.descriptionFr}
-                    onChange={(e) => setCourseForm({ ...courseForm, descriptionFr: e.target.value })}
-                    required
-                    rows={4}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Décrivez votre cours..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'الوصف (عربي) *' : 'Description (Arabe) *'}
-                  </label>
-                  <textarea
-                    value={courseForm.descriptionAr}
-                    onChange={(e) => setCourseForm({ ...courseForm, descriptionAr: e.target.value })}
-                    required
-                    rows={4}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    dir="rtl"
-                    placeholder="صف درسك..."
-                  />
-                </div>
-              </div>
-
-              {/* Category, Level, Duration */}
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'الفئة *' : 'Catégorie *'}
-                  </label>
-                  <select
-                    value={courseForm.category}
-                    onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat.id} value={cat.id}>
-                        {isArabic ? cat.ar : cat.fr}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'المستوى' : 'Niveau'}
-                  </label>
-                  <select
-                    value={courseForm.level}
-                    onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="beginner">{isArabic ? 'مبتدئ' : 'Débutant'}</option>
-                    <option value="intermediate">{isArabic ? 'متوسط' : 'Intermédiaire'}</option>
-                    <option value="advanced">{isArabic ? 'متقدم' : 'Avancé'}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {isArabic ? 'المدة (بالساعات)' : 'Durée (heures)'}
-                  </label>
-                  <input
-                    type="text"
-                    value={courseForm.duration}
-                    onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={isArabic ? '10 ساعات' : '10 heures'}
-                  />
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {isArabic ? 'الوسوم' : 'Tags'}
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                    className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={isArabic ? 'أضف وسم...' : 'Ajouter un tag...'}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    {isArabic ? 'إضافة' : 'Ajouter'}
-                  </button>
-                </div>
-                {courseForm.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {courseForm.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-1"
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tag)}
-                          className="hover:text-blue-900"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Video URL (Optional) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {isArabic ? 'رابط فيديو YouTube (اختياري)' : 'Lien vidéo YouTube (optionnel)'}
-                </label>
-                <input
-                  type="url"
-                  value={courseForm.videoUrl}
-                  onChange={(e) => setCourseForm({ ...courseForm, videoUrl: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://www.youtube.com/watch?v=..."
-                />
-              </div>
-
-              {/* File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  {isArabic ? 'المواد التعليمية *' : 'Matériels pédagogiques *'}
-                </label>
-                <FileUpload
-                  onFilesUploaded={handleFilesUploaded}
-                  isArabic={isArabic}
-                  maxFiles={15}
-                />
-              </div>
-
-              {/* Publish Toggle */}
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="published"
-                  checked={courseForm.published}
-                  onChange={(e) => setCourseForm({ ...courseForm, published: e.target.checked })}
-                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <label htmlFor="published" className="text-sm font-medium text-gray-700">
-                  {isArabic ? 'نشر الدرس مباشرة (سيكون مرئيًا للطلاب)' : 'Publier le cours immédiatement (visible aux étudiants)'}
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-4 pt-4 border-t">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                      {isArabic ? 'جاري الحفظ...' : 'Enregistrement...'}
-                    </span>
-                  ) : (
-                    editingCourse
-                      ? (isArabic ? 'تحديث الدرس' : 'Mettre à jour')
-                      : (isArabic ? 'إضافة الدرس' : 'Ajouter le cours')
-                  )}
+                  <Cog6ToothIcon className="w-5 h-5" />
+                  <span>{isArabic ? 'الإعدادات العامة' : 'Paramètres Généraux'}</span>
                 </button>
                 <button
-                  type="button"
-                  onClick={closeModal}
-                  disabled={loading}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition disabled:opacity-50"
+                  onClick={() => setContentSubTab('homepage')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
+                    contentSubTab === 'homepage'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
                 >
-                  {isArabic ? 'إلغاء' : 'Annuler'}
+                  <HomeIcon className="w-5 h-5" />
+                  <span>{isArabic ? 'محتوى الصفحة الرئيسية' : 'Contenu de la Page d\'Accueil'}</span>
                 </button>
-              </div>
-            </form>
+              </nav>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1">
+              {contentSubTab === 'settings' ? (
+                <GeneralSettingsManager />
+              ) : contentSubTab === 'homepage' ? (
+                <HomeContentManager />
+              ) : null}
+            </div>
           </div>
-        </div>
-      )}
+        ) : activeTab === 'structure' ? (
+          // Tab 2: Structure de l'École
+          <AcademicStructureManagement />
+        ) : activeTab === 'pages' ? (
+          // Tab 3: Pages Management
+          <PageManager />
+        ) : null}
         </div>
       </div>
     </div>

@@ -6,8 +6,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import NotificationBell from './NotificationBell';
 import { 
   HomeIcon,
-  BookOpenIcon,
-  TrophyIcon,
   BookmarkIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
@@ -16,7 +14,13 @@ import {
   SunIcon,
   MoonIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ChartBarIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentTextIcon,
+  UsersIcon,
+  BookOpenIcon,
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed }) {
@@ -25,32 +29,118 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
   const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
 
-  const menuItems = [
-    {
-      icon: HomeIcon,
-      labelFr: 'Accueil',
-      labelAr: 'الرئيسية',
-      path: '/dashboard'
-    },
-    {
-      icon: BookOpenIcon,
-      labelFr: 'Cours',
-      labelAr: 'الدروس',
-      path: '/my-courses'
-    },
-    {
-      icon: TrophyIcon,
-      labelFr: 'Succès',
-      labelAr: 'الإنجازات',
-      path: '/achievements'
-    },
-    {
-      icon: BookmarkIcon,
-      labelFr: 'Favoris',
-      labelAr: 'المفضلة',
-      path: '/bookmarks'
+  // Role-based menu items
+  const getMenuItems = () => {
+    const role = userProfile?.role || 'student';
+    
+    // Student menu items
+    if (role === 'student') {
+      return [
+        {
+          icon: HomeIcon,
+          labelFr: 'Accueil',
+          labelAr: 'الرئيسية',
+          path: '/dashboard',
+          color: 'blue'
+        },
+        {
+          icon: ChartBarIcon,
+          labelFr: 'Performance',
+          labelAr: 'الأداء',
+          path: '/student/performance',
+          color: 'purple',
+          badge: 'new'
+        },
+        {
+          icon: ClipboardDocumentCheckIcon,
+          labelFr: 'Quiz',
+          labelAr: 'الاختبارات',
+          path: '/student/quizzes',
+          color: 'pink'
+        },
+        {
+          icon: DocumentTextIcon,
+          labelFr: 'Exercices',
+          labelAr: 'التمارين',
+          path: '/student/exercises',
+          color: 'indigo'
+        },
+        {
+          icon: BookmarkIcon,
+          labelFr: 'Favoris',
+          labelAr: 'المفضلة',
+          path: '/bookmarks',
+          color: 'orange'
+        }
+      ];
     }
-  ];
+    
+    // Teacher menu items
+    if (role === 'teacher') {
+      return [
+        {
+          icon: HomeIcon,
+          labelFr: 'Tableau de bord',
+          labelAr: 'لوحة التحكم',
+          path: '/dashboard',
+          color: 'blue'
+        }
+      ];
+    }
+    
+    // Admin menu items
+    if (role === 'admin') {
+      return [
+        {
+          icon: HomeIcon,
+          labelFr: 'Tableau de bord',
+          labelAr: 'لوحة التحكم',
+          path: '/dashboard',
+          color: 'blue'
+        },
+        {
+          icon: ChartBarIcon,
+          labelFr: 'Analytique',
+          labelAr: 'التحليلات',
+          path: '/admin/analytics',
+          color: 'purple'
+        },
+        {
+          icon: BookOpenIcon,
+          labelFr: 'Cours',
+          labelAr: 'الدروس',
+          path: '/admin/courses',
+          color: 'green'
+        },
+        {
+          icon: UsersIcon,
+          labelFr: 'Utilisateurs',
+          labelAr: 'المستخدمون',
+          path: '/admin/users',
+          color: 'indigo'
+        },
+        {
+          icon: ClipboardDocumentCheckIcon,
+          labelFr: 'Quiz',
+          labelAr: 'الاختبارات',
+          path: '/admin/quizzes',
+          color: 'pink'
+        },
+        {
+          icon: DocumentTextIcon,
+          labelFr: 'Exercices',
+          labelAr: 'التمارين',
+          path: '/admin/exercises',
+          color: 'yellow'
+        }
+      ];
+    }
+    
+    // Default fallback
+    return [];
+  };
+
+  const menuItems = getMenuItems();
 
   const handleLogout = async () => {
     try {
@@ -185,6 +275,27 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
               const Icon = item.icon;
               const isActive = isActivePath(item.path);
               
+              // Color mapping for active state
+              const colorClasses = {
+                blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+                purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+                pink: 'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400',
+                indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400',
+                green: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400',
+                yellow: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400',
+                orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
+              };
+              
+              const iconColorClasses = {
+                blue: 'text-blue-600 dark:text-blue-400',
+                purple: 'text-purple-600 dark:text-purple-400',
+                pink: 'text-pink-600 dark:text-pink-400',
+                indigo: 'text-indigo-600 dark:text-indigo-400',
+                green: 'text-green-600 dark:text-green-400',
+                yellow: 'text-yellow-600 dark:text-yellow-400',
+                orange: 'text-orange-600 dark:text-orange-400'
+              };
+              
               return (
                 <Link
                   key={index}
@@ -192,40 +303,33 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
                   onClick={() => setIsOpen(false)}
                   title={isCollapsed ? (isArabic ? item.labelAr : item.labelFr) : ''}
                   className={`
-                    flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} px-3 py-2 rounded-lg transition-all text-sm
+                    flex items-center ${isCollapsed ? 'justify-center relative' : 'gap-2 justify-between'} px-3 py-2 rounded-lg transition-all text-sm
                     ${isActive 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium' 
+                      ? colorClasses[item.color] + ' font-medium shadow-sm' 
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                     }
                   `}
                 >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} />
-                  {!isCollapsed && <span className="truncate">{isArabic ? item.labelAr : item.labelFr}</span>}
+                  <div className={`flex items-center ${isCollapsed ? '' : 'gap-2'}`}>
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? iconColorClasses[item.color] : 'text-gray-400 dark:text-gray-500'}`} />
+                    {!isCollapsed && <span className="truncate">{isArabic ? item.labelAr : item.labelFr}</span>}
+                  </div>
+                  
+                  {/* Badge for new items */}
+                  {!isCollapsed && item.badge === 'new' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-purple-500 text-white rounded">
+                      {isArabic ? 'جديد' : 'NEW'}
+                    </span>
+                  )}
+                  
+                  {/* Collapsed badge indicator */}
+                  {isCollapsed && item.badge === 'new' && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"></span>
+                  )}
                 </Link>
               );
             })}
           </div>
-
-          {/* Quick Stats - Show only when expanded */}
-          {!isCollapsed && (
-            <div className="mt-4 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">{isArabic ? 'مكتمل' : 'Terminés'}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white text-sm">
-                    {userProfile?.completedCourses?.length || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">{isArabic ? 'متتالي' : 'Série'}</span>
-                  <span className="font-semibold text-orange-500 text-sm flex items-center gap-1">
-                    {userProfile?.streak || 0}
-                    <span>🔥</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* Footer - Compact */}

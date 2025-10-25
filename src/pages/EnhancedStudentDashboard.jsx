@@ -4,12 +4,16 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Link } from 'react-router-dom';
+import { matchesStudentClassOrLevel } from '../utils/courseProgress';
 import { 
   BookOpenIcon, 
   BookmarkIcon,
   ShareIcon,
   HeartIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  ChartBarIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
@@ -24,6 +28,12 @@ import CourseRecommendations from '../components/CourseRecommendations';
 import FloatingActionButton from '../components/FloatingActionButton';
 import ActivityTimeline from '../components/ActivityTimeline';
 import SearchModal from '../components/SearchModal';
+import AvailableQuizzes from '../components/AvailableQuizzes';
+import AvailableExercises from '../components/AvailableExercises';
+import EnrolledCourses from '../components/EnrolledCourses';
+import StudyGoalsAndStreak from '../components/StudyGoalsAndStreak';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import NotificationCenter from '../components/NotificationCenter';
 import { StatsSkeleton, CoursesGridSkeleton } from '../components/LoadingSkeleton';
 import { Confetti } from '../components/ProgressCircle';
 
@@ -34,6 +44,7 @@ export default function EnhancedStudentDashboard() {
   // Data states
   const [courses, setCourses] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Filter states
@@ -45,6 +56,7 @@ export default function EnhancedStudentDashboard() {
   // User interaction states
   const [bookmarkedCourses, setBookmarkedCourses] = useState(userProfile?.bookmarks || []);
   const [likedCourses, setLikedCourses] = useState(userProfile?.likes || []);
+  const [enrolledCourses, setEnrolledCourses] = useState(userProfile?.enrolledCourses || []);
   
   // View mode
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
@@ -88,6 +100,9 @@ export default function EnhancedStudentDashboard() {
     }
     if (userProfile?.likes) {
       setLikedCourses(userProfile.likes);
+    }
+    if (userProfile?.enrolledCourses) {
+      setEnrolledCourses(userProfile.enrolledCourses);
     }
   }, [userProfile]);
 
@@ -137,6 +152,28 @@ export default function EnhancedStudentDashboard() {
         }
         setQuizzes([]);
       }
+
+      // Fetch all published exercises
+      try {
+        const exercisesQuery = query(
+          collection(db, 'exercises'),
+          where('published', '==', true),
+          orderBy('createdAt', 'desc')
+        );
+        const exercisesSnapshot = await getDocs(exercisesQuery);
+        const exercisesData = exercisesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setExercises(exercisesData);
+        console.log('✅ Exercises loaded:', exercisesData.length);
+      } catch (error) {
+        console.error('⚠️ Error fetching exercises:', error);
+        if (error.code === 'failed-precondition') {
+          console.warn('ℹ️ Exercises index not created. Exercises feature will be unavailable.');
+        }
+        setExercises([]);
+      }
       
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -151,9 +188,32 @@ export default function EnhancedStudentDashboard() {
     return userProfile.progress[courseId] || 0;
   };
 
-  // Filter and sort courses
+  // Calculate filtered counts for student's class/level
+  const getFilteredCounts = () => {
+    const filteredCourses = courses.filter(c => matchesStudentClassOrLevel(c, userProfile));
+    const filteredQuizzes = quizzes.filter(q => matchesStudentClassOrLevel(q, userProfile));
+    const filteredExercises = exercises.filter(e => matchesStudentClassOrLevel(e, userProfile));
+    
+    return {
+      coursesCount: filteredCourses.length,
+      quizzesCount: filteredQuizzes.length,
+      exercisesCount: filteredExercises.length,
+      availableCoursesCount: filteredCourses.filter(c => !enrolledCourses.includes(c.id)).length,
+      enrolledCoursesCount: filteredCourses.filter(c => enrolledCourses.includes(c.id)).length
+    };
+  };
+
+  const filteredCounts = getFilteredCounts();
+
+  // Filter and sort courses (only non-enrolled courses for Browse section)
   const filteredAndSortedCourses = courses
     .filter(course => {
+      // Exclude enrolled courses from browse section
+      const notEnrolled = !enrolledCourses.includes(course.id);
+      
+      // ACADEMIC HIERARCHY: Filter by student's class/level
+      const matchesStudentClassLevel = matchesStudentClassOrLevel(course, userProfile);
+      
       // Search filter
       const matchesSearch = !searchTerm || 
         course.titleFr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,10 +224,10 @@ export default function EnhancedStudentDashboard() {
       // Category filter
       const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
       
-      // Level filter
+      // Level filter (old difficulty level filter, not academic level)
       const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
       
-      return matchesSearch && matchesCategory && matchesLevel;
+      return notEnrolled && matchesStudentClassLevel && matchesSearch && matchesCategory && matchesLevel;
     })
     .sort((a, b) => {
       switch(sortBy) {
@@ -241,6 +301,38 @@ export default function EnhancedStudentDashboard() {
     }
   };
 
+  // Enroll/Unenroll functionality
+  const toggleEnrollment = async (courseId) => {
+    const isEnrolled = enrolledCourses.includes(courseId);
+    const newEnrolled = isEnrolled
+      ? enrolledCourses.filter(id => id !== courseId)
+      : [...enrolledCourses, courseId];
+    
+    setEnrolledCourses(newEnrolled);
+    
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        enrolledCourses: newEnrolled
+      });
+      
+      toast.success(
+        isEnrolled
+          ? (isArabic ? 'تم إلغاء التسجيل من الدورة' : 'Désinscrit du cours')
+          : (isArabic ? 'تم التسجيل في الدورة بنجاح!' : 'Inscrit au cours avec succès!')
+      );
+      
+      // Show confetti when enrolling
+      if (!isEnrolled) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error updating enrollment:', error);
+      setEnrolledCourses(enrolledCourses); // Revert on error
+      toast.error(isArabic ? 'خطأ في التسجيل' : 'Erreur d\'inscription');
+    }
+  };
+
   const shareCourse = async (course) => {
     const shareData = {
       title: isArabic ? course.titleAr : course.titleFr,
@@ -304,15 +396,105 @@ export default function EnhancedStudentDashboard() {
                 }
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-              <span className="text-lg md:text-xl font-bold">{userProfile?.points || 0}</span>
-              <span className="text-yellow-300">★</span>
+            <div className="flex items-center gap-2">
+              {/* Notification Center */}
+              <NotificationCenter 
+                userId={currentUser.uid}
+                userProfile={userProfile}
+                isArabic={isArabic}
+              />
+              
+              {/* Points Display */}
+              <div className="hidden sm:flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+                <span className="text-lg md:text-xl font-bold">{userProfile?.points || 0}</span>
+                <span className="text-yellow-300">★</span>
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Quick Navigation Cards - VIVID COLORS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
+          {/* Performance & Analytics Link - VIVID PURPLE */}
+          <Link
+            to="/student/performance"
+            className="bg-gradient-to-br from-purple-600 via-purple-500 to-fuchsia-500 text-white rounded-lg shadow-lg p-3 sm:p-4 hover:shadow-xl hover:scale-105 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <ChartBarIcon className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-lg" />
+              <span className="text-xs sm:text-sm bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full font-semibold shadow-md">
+                {isArabic ? 'جديد' : 'Nouveau'}
+              </span>
+            </div>
+            <h3 className="font-bold text-sm sm:text-base mb-1 drop-shadow-md">
+              {isArabic ? 'الأداء' : 'Performance'}
+            </h3>
+            <p className="text-xs text-purple-50 line-clamp-2">
+              {isArabic ? 'الإحصائيات والأهداف' : 'Stats & Objectifs'}
+            </p>
+          </Link>
+
+          {/* Quizzes Link - VIVID PINK/MAGENTA */}
+          <Link
+            to="/student/quizzes"
+            className="bg-gradient-to-br from-pink-600 via-pink-500 to-rose-500 text-white rounded-lg shadow-lg p-3 sm:p-4 hover:shadow-xl hover:scale-105 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <ClipboardDocumentCheckIcon className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-lg" />
+              <span className="text-xs sm:text-sm bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full font-semibold shadow-md">
+                {filteredCounts.quizzesCount}
+              </span>
+            </div>
+            <h3 className="font-bold text-sm sm:text-base mb-1 drop-shadow-md">
+              {isArabic ? 'الاختبارات' : 'Quiz'}
+            </h3>
+            <p className="text-xs text-pink-50 line-clamp-2">
+              {isArabic ? 'اختبارات متاحة' : 'Quiz disponibles'}
+            </p>
+          </Link>
+
+          {/* Exercises Link - VIVID BLUE */}
+          <Link
+            to="/student/exercises"
+            className="bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg shadow-lg p-3 sm:p-4 hover:shadow-xl hover:scale-105 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <DocumentTextIcon className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-lg" />
+              <span className="text-xs sm:text-sm bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full font-semibold shadow-md">
+                {filteredCounts.exercisesCount}
+              </span>
+            </div>
+            <h3 className="font-bold text-sm sm:text-base mb-1 drop-shadow-md">
+              {isArabic ? 'التمارين' : 'Exercices'}
+            </h3>
+            <p className="text-xs text-blue-50 line-clamp-2">
+              {isArabic ? 'تمارين متاحة' : 'Exercices disponibles'}
+            </p>
+          </Link>
+
+          {/* Courses Link - VIVID GREEN/EMERALD */}
+          <a
+            href="#all-courses"
+            className="bg-gradient-to-br from-emerald-600 via-green-500 to-teal-500 text-white rounded-lg shadow-lg p-3 sm:p-4 hover:shadow-xl hover:scale-105 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <BookOpenIcon className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-lg" />
+              <span className="text-xs sm:text-sm bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full font-semibold shadow-md">
+                {filteredCounts.availableCoursesCount}
+              </span>
+            </div>
+            <h3 className="font-bold text-sm sm:text-base mb-1 drop-shadow-md">
+              {isArabic ? 'الدروس' : 'Cours'}
+            </h3>
+            <p className="text-xs text-emerald-50 line-clamp-2">
+              {isArabic ? 'تصفح الدروس' : 'Parcourir cours'}
+            </p>
+          </a>
+        </div>
+
+        {/* TODO: Move to separate "Performance" page */}
         {/* Enhanced Statistics */}
-        {loading ? (
+        {/* {loading ? (
           <StatsSkeleton />
         ) : (
           <EnhancedStats 
@@ -321,6 +503,48 @@ export default function EnhancedStudentDashboard() {
             userProfile={userProfile}
             isArabic={isArabic}
             getProgressPercentage={getProgressPercentage}
+          />
+        )} */}
+
+        {/* TODO: Move to separate "Performance" page */}
+        {/* Study Goals and Streak Counter */}
+        {/* {!loading && (
+          <StudyGoalsAndStreak 
+            userId={currentUser.uid}
+            userProfile={userProfile}
+            isArabic={isArabic}
+          />
+        )} */}
+
+        {/* TODO: Move to separate "Quizzes" page */}
+        {/* Available Quizzes Section */}
+        {/* {!loading && (
+          <AvailableQuizzes 
+            quizzes={quizzes}
+            userProfile={userProfile}
+            isArabic={isArabic}
+          />
+        )} */}
+
+        {/* TODO: Move to separate "Exercises" page */}
+        {/* Available Exercises Section */}
+        {/* {!loading && (
+          <AvailableExercises 
+            exercises={exercises}
+            userProfile={userProfile}
+            isArabic={isArabic}
+          />
+        )} */}
+
+        {/* Enrolled Courses Section */}
+        {!loading && (
+          <EnrolledCourses 
+            courses={courses}
+            enrolledCourseIds={enrolledCourses}
+            getProgressPercentage={getProgressPercentage}
+            userProfile={userProfile}
+            isArabic={isArabic}
+            onUnenroll={toggleEnrollment}
           />
         )}
 
@@ -338,11 +562,14 @@ export default function EnhancedStudentDashboard() {
           resultCount={filteredAndSortedCourses.length}
         />
 
-        {/* All Courses Section */}
-        <div className="mb-4">
+        {/* Browse Available Courses Section */}
+        <div className="mb-4" id="all-courses">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-              {isArabic ? 'جميع الدروس' : 'Tous les Cours'}
+              {isArabic ? 'تصفح الدروس المتاحة' : 'Parcourir les Cours Disponibles'}
+              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                ({filteredAndSortedCourses.length})
+              </span>
             </h2>
             
             {/* View Mode Toggle */}
@@ -394,8 +621,10 @@ export default function EnhancedStudentDashboard() {
                     progress={getProgressPercentage(course.id)}
                     isBookmarked={bookmarkedCourses.includes(course.id)}
                     isLiked={likedCourses.includes(course.id)}
+                    isEnrolled={enrolledCourses.includes(course.id)}
                     onToggleBookmark={() => toggleBookmark(course.id)}
                     onToggleLike={() => toggleLike(course.id)}
+                    onToggleEnrollment={() => toggleEnrollment(course.id)}
                     onShare={() => shareCourse(course)}
                   />
                 ))}
@@ -479,43 +708,49 @@ export default function EnhancedStudentDashboard() {
           )}
         </div>
 
-        {/* Popular Courses / Recommendations - Right After All Courses */}
-        {!loading && (
-          <CourseRecommendations 
+        {/* TODO: Move to separate "Performance" page */}
+        {/* Analytics Dashboard */}
+        {/* {!loading && (
+          <AnalyticsDashboard 
             courses={courses}
             userProfile={userProfile}
-            isArabic={isArabic}
             getProgressPercentage={getProgressPercentage}
+            isArabic={isArabic}
           />
-        )}
+        )} */}
 
+        {/* REMOVED: Popular Courses / Recommendations (as requested) */}
+
+        {/* TODO: Move to separate "Performance" page */}
         {/* Activity Timeline */}
-        {!loading && (
+        {/* {!loading && (
           <ActivityTimeline 
             userProfile={userProfile}
             courses={courses}
           />
-        )}
+        )} */}
 
+        {/* TODO: Move to separate "Performance" page */}
         {/* Achievements Section */}
-        {!loading && (
+        {/* {!loading && (
           <Achievements 
             courses={courses}
             userProfile={userProfile}
             isArabic={isArabic}
             getProgressPercentage={getProgressPercentage}
           />
-        )}
+        )} */}
 
+        {/* TODO: Move to separate page or keep for quick access */}
         {/* Continue Learning Section */}
-        {!loading && (
+        {/* {!loading && (
           <ContinueLearning 
             courses={courses}
             userProfile={userProfile}
             isArabic={isArabic}
             getProgressPercentage={getProgressPercentage}
           />
-        )}
+        )} */}
         </div>
       </div>
     </div>
@@ -530,8 +765,10 @@ function CourseCard({
   progress,
   isBookmarked,
   isLiked,
+  isEnrolled,
   onToggleBookmark,
   onToggleLike,
+  onToggleEnrollment,
   onShare
 }) {
   if (viewMode === 'list') {
@@ -602,12 +839,20 @@ function CourseCard({
             )}
           </div>
 
-          <Link 
-            to={`/course/${course.id}`}
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs rounded-md transition-all font-medium"
-          >
-            {isArabic ? 'عرض' : 'Voir'}
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => { e.preventDefault(); onToggleEnrollment(); }}
+              className="inline-block bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-1.5 text-xs rounded-md transition-all font-medium shadow-sm"
+            >
+              {isArabic ? '✓ التسجيل' : '✓ S\'inscrire'}
+            </button>
+            <Link 
+              to={`/course/${course.id}`}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs rounded-md transition-all font-medium"
+            >
+              {isArabic ? 'عرض' : 'Voir'}
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -687,19 +932,27 @@ function CourseCard({
           </div>
         )}
         
-        <div className="flex gap-1">
-          <Link 
-            to={`/course/${course.id}`}
-            className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-1.5 text-xs rounded-md transition-all font-medium"
-          >
-            {isArabic ? 'عرض' : 'Voir'}
-          </Link>
+        <div className="flex flex-col gap-1.5">
           <button
-            onClick={onShare}
-            className="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+            onClick={(e) => { e.preventDefault(); onToggleEnrollment(); }}
+            className="w-full text-center bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-1.5 text-xs rounded-md transition-all font-medium shadow-sm"
           >
-            <ShareIcon className="w-3.5 h-3.5" />
+            {isArabic ? '✓ التسجيل في الدورة' : '✓ S\'inscrire'}
           </button>
+          <div className="flex gap-1">
+            <Link 
+              to={`/course/${course.id}`}
+              className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-1.5 text-xs rounded-md transition-all font-medium"
+            >
+              {isArabic ? 'عرض' : 'Voir'}
+            </Link>
+            <button
+              onClick={onShare}
+              className="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+            >
+              <ShareIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

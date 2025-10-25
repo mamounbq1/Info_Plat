@@ -89,11 +89,9 @@ function renderSection(courses, isArabic, isPopular) {
                     isArabic ? 'موصى به' : 'Recommandé'
                   )}
                 </span>
-                {course.level && (
-                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded">
-                    {course.level === 'beginner' && (isArabic ? 'مبتدئ' : 'Débutant')}
-                    {course.level === 'intermediate' && (isArabic ? 'متوسط' : 'Intermédiaire')}
-                    {course.level === 'advanced' && (isArabic ? 'متقدم' : 'Avancé')}
+                {course.targetLevels && course.targetLevels.length > 0 && (
+                  <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 text-xs rounded">
+                    🎓 {course.targetLevels.length}
                   </span>
                 )}
               </div>
