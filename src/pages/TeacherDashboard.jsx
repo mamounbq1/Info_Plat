@@ -50,6 +50,7 @@ export default function TeacherDashboard() {
   // State
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]); // Available classes from Firestore
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +76,11 @@ export default function TeacherDashboard() {
     videoUrl: '',
     thumbnail: '',
     published: false,
-    tags: []
+    tags: [],
+    targetClasses: [], // Array of class codes that this course is for
+    subjectCode: '', // Auto-filled from teacher's profile
+    subjectNameFr: '', // Auto-filled from teacher's profile
+    subjectNameAr: '' // Auto-filled from teacher's profile
   });
 
   const [newTag, setNewTag] = useState('');
@@ -83,7 +88,18 @@ export default function TeacherDashboard() {
   useEffect(() => {
     fetchCourses();
     fetchStudents();
-  }, []);
+    fetchClasses();
+    
+    // Auto-fill subject from teacher's profile
+    if (userProfile?.subjectCode) {
+      setCourseForm(prev => ({
+        ...prev,
+        subjectCode: userProfile.subjectCode || '',
+        subjectNameFr: userProfile.subjectNameFr || '',
+        subjectNameAr: userProfile.subjectNameAr || ''
+      }));
+    }
+  }, [userProfile]);
 
   const fetchCourses = async () => {
     try {
@@ -153,6 +169,37 @@ export default function TeacherDashboard() {
       console.error('Error fetching students:', error);
       // If index doesn't exist, just set empty array
       setStudents([]);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const classesQuery = query(
+        collection(db, 'classes'),
+        orderBy('order', 'asc')
+      );
+      const snapshot = await getDocs(classesQuery);
+      const classesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      // Only show enabled classes
+      setClasses(classesData.filter(c => c.enabled !== false));
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      // Try without orderBy if index doesn't exist
+      try {
+        const simpleQuery = collection(db, 'classes');
+        const snapshot = await getDocs(simpleQuery);
+        const classesData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setClasses(classesData.filter(c => c.enabled !== false));
+      } catch (finalError) {
+        console.error('Final error fetching classes:', finalError);
+        setClasses([]);
+      }
     }
   };
 
@@ -235,7 +282,11 @@ export default function TeacherDashboard() {
       videoUrl: course.videoUrl || '',
       thumbnail: course.thumbnail || '',
       published: course.published || false,
-      tags: course.tags || []
+      tags: course.tags || [],
+      targetClasses: course.targetClasses || [],
+      subjectCode: course.subjectCode || userProfile?.subjectCode || '',
+      subjectNameFr: course.subjectNameFr || userProfile?.subjectNameFr || '',
+      subjectNameAr: course.subjectNameAr || userProfile?.subjectNameAr || ''
     });
     setShowCourseModal(true);
   };
@@ -380,7 +431,11 @@ export default function TeacherDashboard() {
       videoUrl: '',
       thumbnail: '',
       published: false,
-      tags: []
+      tags: [],
+      targetClasses: [],
+      subjectCode: userProfile?.subjectCode || '',
+      subjectNameFr: userProfile?.subjectNameFr || '',
+      subjectNameAr: userProfile?.subjectNameAr || ''
     });
   };
 
@@ -697,6 +752,7 @@ export default function TeacherDashboard() {
           loading={loading}
           categories={CATEGORIES}
           levels={LEVELS}
+          classes={classes}
           newTag={newTag}
           setNewTag={setNewTag}
           onFilesUploaded={handleFilesUploaded}
@@ -845,6 +901,7 @@ function CourseModal({
   loading,
   categories,
   levels,
+  classes,
   newTag,
   setNewTag,
   onFilesUploaded,
@@ -964,6 +1021,80 @@ function CourseModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Subject (Read-only - from teacher profile) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {isArabic ? 'المادة (تلقائي من ملفك الشخصي)' : 'Matière (automatique depuis votre profil)'}
+            </label>
+            <input
+              type="text"
+              value={isArabic ? courseForm.subjectNameAr : courseForm.subjectNameFr}
+              readOnly
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed"
+              placeholder={isArabic ? 'لم يتم تحديد مادة في ملفك' : 'Aucune matière définie dans votre profil'}
+            />
+            {!courseForm.subjectCode && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                {isArabic 
+                  ? '⚠️ لم يتم تعيين مادة لك. اتصل بالمسؤول لتعيين مادتك.'
+                  : '⚠️ Aucune matière n\'est assignée à votre compte. Contactez l\'administrateur pour assigner votre matière.'
+                }
+              </p>
+            )}
+          </div>
+
+          {/* Target Classes (Multi-select) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {isArabic ? 'الفصول المستهدفة' : 'Classes concernées'} *
+            </label>
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 space-y-2 max-h-48 overflow-y-auto bg-white dark:bg-gray-700">
+              {classes.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {isArabic ? 'لا توجد فصول متاحة' : 'Aucune classe disponible'}
+                </p>
+              ) : (
+                classes.map((classItem) => (
+                  <label
+                    key={classItem.id}
+                    className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={courseForm.targetClasses.includes(classItem.code)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setCourseForm({
+                            ...courseForm,
+                            targetClasses: [...courseForm.targetClasses, classItem.code]
+                          });
+                        } else {
+                          setCourseForm({
+                            ...courseForm,
+                            targetClasses: courseForm.targetClasses.filter(c => c !== classItem.code)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {isArabic ? classItem.nameAr : classItem.nameFr}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                        ({classItem.code})
+                      </span>
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {isArabic 
+                ? `محدد: ${courseForm.targetClasses.length} فصل(فصول)`
+                : `Sélectionné : ${courseForm.targetClasses.length} classe(s)`
+              }
+            </p>
           </div>
 
           {/* Duration */}
