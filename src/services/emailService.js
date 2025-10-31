@@ -197,23 +197,28 @@ export const sendApprovalEmail = async ({
   }
 
   try {
-    // Simple and clear template parameters
+    // Template parameters matching EmailJS template variables
     const templateParams = {
+      // Primary recipient fields
       to_email: toEmail,
+      email: toEmail, // For Reply To field in template
       to_name: toName,
+      name: toName, // Alternative name variable
       
-      // Simple subject line
+      // Subject line
       subject: language === 'ar' 
         ? 'تم قبول تسجيلك' 
         : 'Votre inscription est approuvée',
       
-      // Simple message
+      // Message content
       message: language === 'ar'
         ? `مرحباً ${toName}،\n\nتم قبول تسجيلك في المنصة التعليمية.\nيمكنك الآن تسجيل الدخول والوصول إلى جميع الدروس.\n\nمع أطيب التحيات،\nفريق المنصة التعليمية`
         : `Bonjour ${toName},\n\nVotre inscription sur la plateforme éducative a été approuvée.\nVous pouvez maintenant vous connecter et accéder à tous les cours.\n\nCordialement,\nL'équipe de la plateforme éducative`,
       
-      // Platform info
+      // Platform branding
       platform_name: 'Plateforme Éducative Marocaine',
+      
+      // Approval metadata
       approval_date: new Date().toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', {
         year: 'numeric',
         month: 'long',
