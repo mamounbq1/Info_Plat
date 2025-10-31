@@ -176,9 +176,20 @@ export const sendApprovalEmail = async ({
   toName,
   language = 'fr'
 }) => {
+  console.log('📧 [sendApprovalEmail] Starting...');
+  console.log('📧 [sendApprovalEmail] To:', toEmail, 'Name:', toName, 'Lang:', language);
+  
   // Check if EmailJS is configured
-  if (!isEmailConfigured()) {
-    console.warn('EmailJS is not configured. Email sending is disabled.');
+  const configured = isEmailConfigured();
+  console.log('📧 [sendApprovalEmail] Configuration status:', {
+    configured,
+    publicKey: !!EMAILJS_CONFIG.publicKey,
+    serviceId: !!EMAILJS_CONFIG.serviceId,
+    templateId: !!EMAILJS_CONFIG.templateId
+  });
+  
+  if (!configured) {
+    console.warn('⚠️ [sendApprovalEmail] EmailJS is not configured. Email sending is disabled.');
     return {
       success: false,
       message: 'Email service not configured.'
@@ -210,6 +221,11 @@ export const sendApprovalEmail = async ({
       })
     };
 
+    console.log('📧 [sendApprovalEmail] Template params:', templateParams);
+    console.log('📧 [sendApprovalEmail] Sending via EmailJS...');
+    console.log('📧 [sendApprovalEmail] Service:', EMAILJS_CONFIG.serviceId);
+    console.log('📧 [sendApprovalEmail] Template:', EMAILJS_CONFIG.templateId);
+
     // Send email via EmailJS
     const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
@@ -217,7 +233,8 @@ export const sendApprovalEmail = async ({
       templateParams
     );
 
-    console.log('Approval email sent successfully:', response);
+    console.log('✅ [sendApprovalEmail] Email sent successfully!');
+    console.log('✅ [sendApprovalEmail] Response:', response);
 
     return {
       success: true,
@@ -227,7 +244,13 @@ export const sendApprovalEmail = async ({
     };
 
   } catch (error) {
-    console.error('Error sending approval email:', error);
+    console.error('❌ [sendApprovalEmail] Error sending approval email:', error);
+    console.error('❌ [sendApprovalEmail] Error details:', {
+      message: error.message,
+      text: error.text,
+      status: error.status,
+      stack: error.stack
+    });
     
     return {
       success: false,

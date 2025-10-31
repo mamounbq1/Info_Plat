@@ -81,6 +81,8 @@ export default function UserManagement() {
     try {
       // Get user data before updating
       const user = users.find(u => u.id === userId);
+      console.log('📧 [Approval] User found:', user);
+      console.log('📧 [Approval] EmailJS configured:', isEmailConfigured());
       
       // Update user status in Firestore
       await updateDoc(doc(db, 'users', userId), {
@@ -88,14 +90,17 @@ export default function UserManagement() {
         status: 'active',
         approvedAt: new Date().toISOString()
       });
+      console.log('✅ [Approval] User status updated in Firestore');
       
       // Send approval email if configured
       if (user && isEmailConfigured()) {
+        console.log('📧 [Approval] Sending email to:', user.email);
         const emailResult = await sendApprovalEmail({
           toEmail: user.email,
           toName: user.fullName || user.email,
           language: isArabic ? 'ar' : 'fr'
         });
+        console.log('📧 [Approval] Email result:', emailResult);
 
         if (emailResult.success) {
           toast.success(
@@ -104,6 +109,7 @@ export default function UserManagement() {
               : '✅ Utilisateur approuvé et notifié par email'
           );
         } else {
+          console.error('❌ [Approval] Email failed:', emailResult.message, emailResult.error);
           toast.success(
             isArabic 
               ? '✅ تمت الموافقة (فشل إرسال البريد)' 
@@ -111,12 +117,13 @@ export default function UserManagement() {
           );
         }
       } else {
+        console.warn('⚠️ [Approval] Email not sent - User:', !!user, 'Configured:', isEmailConfigured());
         toast.success(isArabic ? 'تمت الموافقة على المستخدم' : 'Utilisateur approuvé');
       }
       
       fetchUsers();
     } catch (error) {
-      console.error('Error approving user:', error);
+      console.error('❌ [Approval] Error approving user:', error);
       toast.error(isArabic ? 'خطأ في الموافقة' : 'Erreur lors de l\'approbation');
     }
   };
