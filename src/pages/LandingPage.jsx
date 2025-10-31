@@ -73,6 +73,16 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [currentCarouselImage, setCurrentCarouselImage] = useState(0);
+  
+  // Contact form state (moved to parent to prevent re-render issues)
+  const [contactFormData, setContactFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactSubmitSuccess, setContactSubmitSuccess] = useState(false);
 
   // Charger le contenu dynamique depuis Firestore
   const {
@@ -1191,6 +1201,69 @@ export default function LandingPage() {
   };
 
   // ==================== SECTION 11: CONTACT ====================
+  // Handle form input changes
+  const handleContactInputChange = (e) => {
+    const { name, value } = e.target;
+    setContactFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle form submission
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!contactFormData.name.trim() || !contactFormData.email.trim() || !contactFormData.message.trim()) {
+      alert(isArabic ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Veuillez remplir tous les champs requis');
+      return;
+    }
+
+    setIsSubmittingContact(true);
+
+    try {
+      // Import Firestore functions
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+
+      // Save to Firestore
+      await addDoc(collection(db, 'messages'), {
+        name: contactFormData.name.trim(),
+        email: contactFormData.email.trim(),
+        subject: contactFormData.subject.trim() || (isArabic ? 'رسالة من الصفحة الرئيسية' : 'Message depuis la page d\'accueil'),
+        message: contactFormData.message.trim(),
+        status: 'new',
+        read: false,
+        replied: false,
+        createdAt: serverTimestamp(),
+        source: 'landing_page'
+      });
+
+      // Show success message
+      setContactSubmitSuccess(true);
+      
+      // Reset form
+      setContactFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setContactSubmitSuccess(false);
+      }, 5000);
+
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      alert(isArabic ? 'حدث خطأ أثناء إرسال الرسالة' : 'Erreur lors de l\'envoi du message');
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  };
+
   const ContactSection = () => {
     const contact = dynamicContactInfo || {
       phone: '+212 5XX-XXXXXX',
@@ -1199,79 +1272,6 @@ export default function LandingPage() {
       addressAr: 'عنوان الثانوية',
       hoursFr: 'Lun-Ven: 8h-17h',
       hoursAr: 'الاثنين-الجمعة: 8 صباحاً - 5 مساءً',
-    };
-
-    // Contact form state
-    const [formData, setFormData] = useState({
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitSuccess, setSubmitSuccess] = useState(false);
-
-    // Handle form input changes
-    const handleInputChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    };
-
-    // Handle form submission
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      
-      // Validation
-      if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-        alert(isArabic ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Veuillez remplir tous les champs requis');
-        return;
-      }
-
-      setIsSubmitting(true);
-
-      try {
-        // Import Firestore functions
-        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
-        const { db } = await import('../config/firebase');
-
-        // Save to Firestore
-        await addDoc(collection(db, 'messages'), {
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          subject: formData.subject.trim() || (isArabic ? 'رسالة من الصفحة الرئيسية' : 'Message depuis la page d\'accueil'),
-          message: formData.message.trim(),
-          status: 'new',
-          read: false,
-          replied: false,
-          createdAt: serverTimestamp(),
-          source: 'landing_page'
-        });
-
-        // Show success message
-        setSubmitSuccess(true);
-        
-        // Reset form
-        setFormData({
-          name: '',
-          email: '',
-          subject: '',
-          message: ''
-        });
-
-        // Hide success message after 5 seconds
-        setTimeout(() => {
-          setSubmitSuccess(false);
-        }, 5000);
-
-      } catch (error) {
-        console.error('Error submitting contact form:', error);
-        alert(isArabic ? 'حدث خطأ أثناء إرسال الرسالة' : 'Erreur lors de l\'envoi du message');
-      } finally {
-        setIsSubmitting(false);
-      }
     };
 
     return (
@@ -1356,7 +1356,7 @@ export default function LandingPage() {
                 </h3>
                 
                 {/* Success Message */}
-                {submitSuccess && (
+                {contactSubmitSuccess && (
                   <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg flex items-center gap-3">
                     <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                     <p className="text-green-800 dark:text-green-200">
@@ -1367,7 +1367,7 @@ export default function LandingPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleContactSubmit} className="space-y-6">
                   <div className="grid sm:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1376,10 +1376,10 @@ export default function LandingPage() {
                       <input
                         type="text"
                         name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
+                        value={contactFormData.name}
+                        onChange={handleContactInputChange}
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmittingContact}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder={isArabic ? 'اسمك' : 'Votre nom'}
                       />
@@ -1391,10 +1391,10 @@ export default function LandingPage() {
                       <input
                         type="email"
                         name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
+                        value={contactFormData.email}
+                        onChange={handleContactInputChange}
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmittingContact}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder={isArabic ? 'بريدك الإلكتروني' : 'Votre email'}
                       />
@@ -1407,9 +1407,9 @@ export default function LandingPage() {
                     <input
                       type="text"
                       name="subject"
-                      value={formData.subject}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
+                      value={contactFormData.subject}
+                      onChange={handleContactInputChange}
+                      disabled={isSubmittingContact}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder={isArabic ? 'موضوع الرسالة' : 'Sujet du message'}
                     />
@@ -1420,10 +1420,10 @@ export default function LandingPage() {
                     </label>
                     <textarea
                       name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
+                      value={contactFormData.message}
+                      onChange={handleContactInputChange}
                       required
-                      disabled={isSubmitting}
+                      disabled={isSubmittingContact}
                       rows={6}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder={isArabic ? 'رسالتك هنا...' : 'Votre message...'}
@@ -1431,10 +1431,10 @@ export default function LandingPage() {
                   </div>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmittingContact}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-all hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? (
+                    {isSubmittingContact ? (
                       <>
                         <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
