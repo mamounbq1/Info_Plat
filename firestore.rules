@@ -32,10 +32,10 @@ service cloud.firestore {
              request.resource.data.subject == getTeacherSubject();
     }
     
-    // Helper function to validate targetLevels is present and non-empty
-    function hasValidTargetLevels() {
-      return request.resource.data.targetLevels is list && 
-             request.resource.data.targetLevels.size() > 0;
+    // Helper function to validate targetClasses is present and non-empty
+    function hasValidTargetClasses() {
+      return request.resource.data.targetClasses is list && 
+             request.resource.data.targetClasses.size() > 0;
     }
     
     // Users collection - users can read all profiles, users can write their own, admins can write any
@@ -53,16 +53,16 @@ service cloud.firestore {
     }
     
     // Courses collection - anyone authenticated can read, teachers and admins can write
-    // ACADEMIC HIERARCHY: Validate subject matches teacher's subject and targetLevels is present
+    // ACADEMIC HIERARCHY: Validate subject matches teacher's subject and targetClasses is present
     match /courses/{courseId} {
       allow read: if request.auth != null;
       allow create: if isTeacherOrAdmin() && 
                        validateCourseSubject() && 
-                       hasValidTargetLevels();
+                       hasValidTargetClasses();
       allow update: if isTeacherOrAdmin() && 
                        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName) &&
                        validateCourseSubject() && 
-                       hasValidTargetLevels();
+                       hasValidTargetClasses();
       allow delete: if isTeacherOrAdmin() && 
                        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
     }
