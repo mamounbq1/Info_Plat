@@ -177,11 +177,27 @@ export default function UserManagement() {
         if (action === 'delete') {
           await deleteDoc(doc(db, 'users', userId));
         } else if (action === 'approve') {
+          // Get user data for email
+          const user = users.find(u => u.id === userId);
+          console.log('📧 [Bulk Approval] Processing user:', user);
+          
+          // Update user status in Firestore
           await updateDoc(doc(db, 'users', userId), {
             approved: true,
             status: 'active',
             approvedAt: new Date().toISOString()
           });
+          
+          // Send approval email if configured
+          if (user && isEmailConfigured()) {
+            console.log('📧 [Bulk Approval] Sending email to:', user.email);
+            const emailResult = await sendApprovalEmail({
+              toEmail: user.email,
+              toName: user.fullName || user.email,
+              language: isArabic ? 'ar' : 'fr'
+            });
+            console.log('📧 [Bulk Approval] Email result for', user.email, ':', emailResult);
+          }
         } else if (action === 'reject') {
           await updateDoc(doc(db, 'users', userId), {
             approved: false,
@@ -193,7 +209,7 @@ export default function UserManagement() {
       
       const actionMessages = {
         delete: isArabic ? 'تم حذف المستخدمين' : 'Utilisateurs supprimés',
-        approve: isArabic ? 'تم الموافقة على المستخدمين' : 'Utilisateurs approuvés',
+        approve: isArabic ? 'تمت الموافقة على المستخدمين وإرسال الإشعارات' : 'Utilisateurs approuvés et notifiés',
         reject: isArabic ? 'تم رفض المستخدمين' : 'Utilisateurs refusés'
       };
       

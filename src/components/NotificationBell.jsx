@@ -22,7 +22,8 @@ export default function NotificationBell() {
   }, []);
 
   const handleApprove = async (notification) => {
-    await approveUser(notification.userId, notification.userName);
+    console.log('🔔 [NotificationBell] Approving user:', notification);
+    await approveUser(notification.userId, notification.userName, notification.userEmail);
     markAsRead(notification.id);
   };
 
@@ -65,13 +66,11 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Notification Panel - Positioned based on language 
-          FR: Panel on left, AR: Panel on right
+      {/* Notification Panel - Professional right-aligned dropdown
+          Always positioned on the right for modern, professional look
           z-[9999]: Ensures panel appears above all dashboard elements */}
       {isOpen && (
-        <div className={`absolute top-14 w-[480px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col ${
-          isArabic ? 'right-0' : 'left-0'
-        }`}>
+        <div className="absolute top-14 right-0 w-[480px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>

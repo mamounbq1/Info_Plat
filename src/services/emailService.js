@@ -18,7 +18,8 @@ import emailjs from '@emailjs/browser';
 const EMAILJS_CONFIG = {
   publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || '',
   serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || '',
-  templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '',
+  templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '', // Default template (for approval)
+  contactReplyTemplateId: import.meta.env.VITE_EMAILJS_CONTACT_REPLY_TEMPLATE_ID || '', // Contact reply template
 };
 
 /**
@@ -62,23 +63,52 @@ export const sendReplyEmail = async ({
   replyMessage,
   language = 'fr'
 }) => {
-  // Check if EmailJS is configured
-  if (!isEmailConfigured()) {
-    console.warn('EmailJS is not configured. Email sending is disabled.');
+  console.log('📧 [sendReplyEmail] Starting...');
+  console.log('📧 [sendReplyEmail] To:', toEmail, 'Name:', toName);
+  
+  // Check if contact reply template is configured
+  const hasContactTemplate = !!EMAILJS_CONFIG.contactReplyTemplateId;
+  const isBaseConfigured = isEmailConfigured();
+  
+  console.log('📧 [sendReplyEmail] Config status:', {
+    baseConfigured: isBaseConfigured,
+    hasContactTemplate,
+    contactTemplateId: EMAILJS_CONFIG.contactReplyTemplateId || 'NOT SET'
+  });
+  
+  if (!isBaseConfigured) {
+    console.warn('⚠️ [sendReplyEmail] EmailJS is not configured. Email sending is disabled.');
     return {
       success: false,
       message: 'Email service not configured. Please contact administrator.'
     };
   }
+  
+  // Use contact reply template if available, otherwise use default template
+  const templateToUse = hasContactTemplate 
+    ? EMAILJS_CONFIG.contactReplyTemplateId 
+    : EMAILJS_CONFIG.templateId;
+  
+  console.log('📧 [sendReplyEmail] Using template:', templateToUse);
+  
+  if (!hasContactTemplate) {
+    console.warn('⚠️ [sendReplyEmail] Contact reply template not configured. Using default template (may not work correctly).');
+  }
 
   try {
     // Prepare template parameters
     const templateParams = {
+      // Primary recipient fields
       to_email: toEmail,
+      email: toEmail, // For Reply To field
       to_name: toName,
+      name: toName, // Alternative name
+      
+      // Subject and message content
       subject: subject,
       original_message: originalMessage,
       reply_message: replyMessage,
+      message: replyMessage, // Alternative message variable
       language: language,
       
       // Additional metadata
@@ -102,14 +132,16 @@ export const sendReplyEmail = async ({
         : 'Cordialement,\nL\'équipe de support',
     };
 
+    console.log('📧 [sendReplyEmail] Template params:', templateParams);
+
     // Send email via EmailJS
     const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
-      EMAILJS_CONFIG.templateId,
+      templateToUse,
       templateParams
     );
 
-    console.log('Email sent successfully:', response);
+    console.log('✅ [sendReplyEmail] Email sent successfully:', response);
 
     return {
       success: true,
@@ -119,7 +151,7 @@ export const sendReplyEmail = async ({
     };
 
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ [sendReplyEmail] Error sending email:', error);
     
     // Handle specific error cases
     let errorMessage = language === 'ar' 
