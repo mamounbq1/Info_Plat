@@ -195,6 +195,30 @@ service cloud.firestore {
       allow read: if isAdmin(); // Only admins can read daily statistics
       allow delete: if false; // No deletes allowed
     }
+    
+    // ✨ TEACHER STATISTICS SYSTEM - Track student engagement and performance
+    
+    // Course Views collection - students can write their views, teachers and admins can read
+    match /courseViews/{viewId} {
+      allow create: if request.auth != null; // Students can log course views
+      allow read: if request.auth != null && (isTeacherOrAdmin()); // Teachers and admins can read views
+      allow update, delete: if false; // Immutable log
+    }
+    
+    // Quiz Submissions collection - students can write submissions, teachers and admins can read
+    match /quizSubmissions/{submissionId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId; // Students can submit
+      allow read: if request.auth != null && (isTeacherOrAdmin() || request.auth.uid == resource.data.userId); // Teachers, admins, and student themselves can read
+      allow update, delete: if false; // Immutable submissions
+    }
+    
+    // Exercise Submissions collection - students can create, teachers can read and update (for grading)
+    match /exerciseSubmissions/{submissionId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId; // Students can submit
+      allow read: if request.auth != null && (isTeacherOrAdmin() || request.auth.uid == resource.data.userId); // Teachers, admins, and student themselves can read
+      allow update: if isTeacherOrAdmin(); // Teachers and admins can grade (update with grade/feedback)
+      allow delete: if isAdmin(); // Only admins can delete
+    }
 
   }
 }
