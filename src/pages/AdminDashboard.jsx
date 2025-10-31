@@ -6,7 +6,8 @@ import {
   AcademicCapIcon,
   HomeIcon,
   Cog6ToothIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '../components/Sidebar';
 import HomeContentManager from '../components/HomeContentManager';
@@ -15,6 +16,7 @@ import AcademicStructureManagement from '../components/AcademicStructureManageme
 import PageManager from '../components/PageManager';
 import AdminAnalytics from '../components/AdminAnalytics';
 import NotificationBell from '../components/NotificationBell';
+import MessagesManager from '../components/admin/MessagesManager';
 
 
 
@@ -143,6 +145,17 @@ export default function AdminDashboard() {
                   <ChartBarIcon className="w-5 h-5" />
                   <span>{isArabic ? 'الإحصائيات' : 'Analytics & Statistiques'}</span>
                 </button>
+                <button
+                  onClick={() => setContentSubTab('messages')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
+                    contentSubTab === 'messages'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <EnvelopeIcon className="w-5 h-5" />
+                  <span>{isArabic ? 'الرسائل' : 'Messages'}</span>
+                </button>
               </nav>
             </div>
 
@@ -154,6 +167,8 @@ export default function AdminDashboard() {
                 <HomeContentManager />
               ) : contentSubTab === 'analytics' ? (
                 <AdminAnalytics />
+              ) : contentSubTab === 'messages' ? (
+                <MessagesManager isArabic={isArabic} />
               ) : null}
             </div>
           </div>
