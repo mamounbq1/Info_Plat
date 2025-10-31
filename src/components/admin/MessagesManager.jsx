@@ -10,7 +10,9 @@ import {
   FunnelIcon,
   PaperAirplaneIcon,
   TrashIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { sendReplyEmail, isEmailConfigured } from '../../services/emailService';
@@ -27,6 +29,10 @@ export default function MessagesManager({ isArabic }) {
   const [showNewReplyForm, setShowNewReplyForm] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const messagesPerPage = 10;
 
   useEffect(() => {
     fetchMessages();
@@ -34,6 +40,7 @@ export default function MessagesManager({ isArabic }) {
 
   useEffect(() => {
     filterMessages();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [messages, searchTerm, filterStatus]);
 
   const fetchMessages = async () => {
@@ -282,6 +289,17 @@ export default function MessagesManager({ isArabic }) {
     replied: messages.filter(m => m.replied).length
   };
 
+  // Pagination calculations
+  const indexOfLastMessage = currentPage * messagesPerPage;
+  const indexOfFirstMessage = indexOfLastMessage - messagesPerPage;
+  const currentMessages = filteredMessages.slice(indexOfFirstMessage, indexOfLastMessage);
+  const totalPages = Math.ceil(filteredMessages.length / messagesPerPage);
+
+  const goToPage = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -382,8 +400,9 @@ export default function MessagesManager({ isArabic }) {
             </p>
           </div>
         ) : (
-          <div className="divide-y dark:divide-gray-700">
-            {filteredMessages.map((message) => (
+          <>
+            <div className="divide-y dark:divide-gray-700">
+              {currentMessages.map((message) => (
               <div
                 key={message.id}
                 className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
@@ -444,6 +463,80 @@ export default function MessagesManager({ isArabic }) {
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+              <div className="flex items-center justify-between">
+                {/* Page Info */}
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {isArabic 
+                    ? `عرض ${indexOfFirstMessage + 1} إلى ${Math.min(indexOfLastMessage, filteredMessages.length)} من ${filteredMessages.length} رسالة`
+                    : `Affichage de ${indexOfFirstMessage + 1} à ${Math.min(indexOfLastMessage, filteredMessages.length)} sur ${filteredMessages.length} messages`
+                  }
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronLeftIcon className="w-5 h-5" />
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage = 
+                        page === 1 || 
+                        page === totalPages || 
+                        (page >= currentPage - 1 && page <= currentPage + 1);
+                      
+                      const showEllipsis = 
+                        (page === currentPage - 2 && currentPage > 3) ||
+                        (page === currentPage + 2 && currentPage < totalPages - 2);
+
+                      if (showEllipsis) {
+                        return (
+                          <span key={page} className="px-3 py-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+
+                      if (!showPage) return null;
+
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition ${
+                            currentPage === page
+                              ? 'bg-primary-600 text-white'
+                              : 'border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    <ChevronRightIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
         )}
       </div>
 

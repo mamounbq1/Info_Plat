@@ -14,6 +14,7 @@ import {
   BookOpenIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { sendApprovalEmail, isEmailConfigured } from '../services/emailService';
 
 export default function UserManagement() {
   const { isArabic } = useLanguage();
@@ -78,12 +79,41 @@ export default function UserManagement() {
 
   const handleApproveUser = async (userId) => {
     try {
+      // Get user data before updating
+      const user = users.find(u => u.id === userId);
+      
+      // Update user status in Firestore
       await updateDoc(doc(db, 'users', userId), {
         approved: true,
         status: 'active',
         approvedAt: new Date().toISOString()
       });
-      toast.success(isArabic ? 'تمت الموافقة على المستخدم' : 'Utilisateur approuvé');
+      
+      // Send approval email if configured
+      if (user && isEmailConfigured()) {
+        const emailResult = await sendApprovalEmail({
+          toEmail: user.email,
+          toName: user.fullName || user.email,
+          language: isArabic ? 'ar' : 'fr'
+        });
+
+        if (emailResult.success) {
+          toast.success(
+            isArabic 
+              ? '✅ تمت الموافقة وإرسال إشعار بالبريد' 
+              : '✅ Utilisateur approuvé et notifié par email'
+          );
+        } else {
+          toast.success(
+            isArabic 
+              ? '✅ تمت الموافقة (فشل إرسال البريد)' 
+              : '✅ Utilisateur approuvé (email non envoyé)'
+          );
+        }
+      } else {
+        toast.success(isArabic ? 'تمت الموافقة على المستخدم' : 'Utilisateur approuvé');
+      }
+      
       fetchUsers();
     } catch (error) {
       console.error('Error approving user:', error);

@@ -163,6 +163,83 @@ export const sendTestEmail = async (testEmail, language = 'fr') => {
 };
 
 /**
+ * Send approval notification email to student
+ * 
+ * @param {Object} params - Email parameters
+ * @param {string} params.toEmail - Student email address
+ * @param {string} params.toName - Student name
+ * @param {string} params.language - Language preference ('fr' or 'ar')
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const sendApprovalEmail = async ({
+  toEmail,
+  toName,
+  language = 'fr'
+}) => {
+  // Check if EmailJS is configured
+  if (!isEmailConfigured()) {
+    console.warn('EmailJS is not configured. Email sending is disabled.');
+    return {
+      success: false,
+      message: 'Email service not configured.'
+    };
+  }
+
+  try {
+    // Simple and clear template parameters
+    const templateParams = {
+      to_email: toEmail,
+      to_name: toName,
+      
+      // Simple subject line
+      subject: language === 'ar' 
+        ? 'تم قبول تسجيلك' 
+        : 'Votre inscription est approuvée',
+      
+      // Simple message
+      message: language === 'ar'
+        ? `مرحباً ${toName}،\n\nتم قبول تسجيلك في المنصة التعليمية.\nيمكنك الآن تسجيل الدخول والوصول إلى جميع الدروس.\n\nمع أطيب التحيات،\nفريق المنصة التعليمية`
+        : `Bonjour ${toName},\n\nVotre inscription sur la plateforme éducative a été approuvée.\nVous pouvez maintenant vous connecter et accéder à tous les cours.\n\nCordialement,\nL'équipe de la plateforme éducative`,
+      
+      // Platform info
+      platform_name: 'Plateforme Éducative Marocaine',
+      approval_date: new Date().toLocaleDateString(language === 'ar' ? 'ar-MA' : 'fr-FR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    };
+
+    // Send email via EmailJS
+    const response = await emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      templateParams
+    );
+
+    console.log('Approval email sent successfully:', response);
+
+    return {
+      success: true,
+      message: language === 'ar' 
+        ? 'تم إرسال إشعار الموافقة بنجاح' 
+        : 'Notification d\'approbation envoyée'
+    };
+
+  } catch (error) {
+    console.error('Error sending approval email:', error);
+    
+    return {
+      success: false,
+      message: language === 'ar' 
+        ? 'فشل إرسال إشعار الموافقة' 
+        : 'Échec de l\'envoi de la notification',
+      error: error
+    };
+  }
+};
+
+/**
  * Get configuration status for debugging
  * @returns {Object} Configuration status
  */
@@ -181,6 +258,7 @@ initEmailJS();
 export default {
   sendReplyEmail,
   sendTestEmail,
+  sendApprovalEmail,
   isEmailConfigured,
   getConfigStatus,
   initEmailJS
