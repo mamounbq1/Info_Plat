@@ -27,6 +27,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import CourseView from './pages/CourseView';
 import QuizTaking from './pages/QuizTaking';
 import QuizResults from './pages/QuizResults';
+import ExerciseTaking from './pages/ExerciseTaking';
 import Settings from './pages/Settings';
 import MyCourses from './pages/MyCourses';
 import AchievementsPage from './pages/AchievementsPage';
@@ -277,6 +278,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <QuizTaking />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/exercise/:exerciseId" 
+                element={
+                  <ProtectedRoute>
+                    <ExerciseTaking />
                   </ProtectedRoute>
                 } 
               />

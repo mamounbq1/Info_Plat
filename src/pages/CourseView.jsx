@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -27,9 +27,23 @@ export default function CourseView() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // ⭐ Track course view time
+  const viewStartTime = useRef(null);
+  const viewTracked = useRef(false);
 
   useEffect(() => {
     fetchCourse();
+    
+    // Record view start time
+    viewStartTime.current = Date.now();
+    
+    // Track course view when component unmounts
+    return () => {
+      if (course && !viewTracked.current) {
+        trackCourseView();
+      }
+    };
   }, [courseId]);
 
   const fetchCourse = async () => {
@@ -54,6 +68,29 @@ export default function CourseView() {
       toast.error(isArabic ? 'خطأ في تحميل الدرس' : 'Erreur lors du chargement');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // ⭐ Track course view for teacher statistics
+  const trackCourseView = async () => {
+    if (!currentUser || !userProfile || !course || viewTracked.current) return;
+    
+    try {
+      const duration = Math.floor((Date.now() - viewStartTime.current) / 1000); // seconds
+      
+      await addDoc(collection(db, 'courseViews'), {
+        courseId: courseId,
+        userId: currentUser.uid,
+        studentName: userProfile.fullName || userProfile.email,
+        viewedAt: new Date().toISOString(),
+        duration: duration
+      });
+      
+      viewTracked.current = true;
+      console.log('✅ Course view tracked:', courseId, duration, 'seconds');
+    } catch (error) {
+      console.error('Error tracking course view:', error);
+      // Don't show error to user - this is background tracking
     }
   };
 
