@@ -302,7 +302,7 @@ export default function QuizTaking() {
           quizId: quizId,
           userId: currentUser.uid,
           studentName: userProfile.fullName || userProfile.email,
-          answers: answersArray, // Keep original array format for teacher review
+          answers: serializedAnswers, // Use serialized answers (no nested arrays)
           score: score,
           submittedAt: new Date().toISOString()
         });

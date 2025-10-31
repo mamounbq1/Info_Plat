@@ -40,10 +40,39 @@ export default function QuizResults({ quiz, isArabic, onClose }) {
       );
 
       const resultsSnapshot = await getDocs(resultsQuery);
-      const resultsData = resultsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const resultsData = resultsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Deserialize answers: convert comma-separated strings back to arrays for QCM and fill-blank
+        const deserializedAnswers = data.answers?.map((answer, idx) => {
+          const question = quiz.questions?.[idx];
+          if (!question) return answer;
+          
+          // For QCM (multiple choice), convert comma-separated string to array of numbers
+          if (question.type === 'qcm' && typeof answer === 'string' && answer.includes(',')) {
+            return answer.split(',').map(num => parseInt(num.trim())).filter(n => !isNaN(n));
+          }
+          
+          // For fill-blank, convert comma-separated string to array of words
+          if (question.type === 'fill-blank' && typeof answer === 'string' && answer.includes(',')) {
+            return answer.split(',').map(word => word.trim());
+          }
+          
+          // For single values (QCU, true-false), convert string numbers to integers
+          if ((question.type === 'qcu' || question.type === 'true-false') && typeof answer === 'string') {
+            const num = parseInt(answer);
+            return isNaN(num) ? answer : num;
+          }
+          
+          return answer;
+        }) || data.answers;
+        
+        return {
+          id: doc.id,
+          ...data,
+          answers: deserializedAnswers
+        };
+      });
 
       // Calculate statistics
       calculateStats(resultsData);
