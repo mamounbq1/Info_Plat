@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { 
   EnvelopeIcon, 
@@ -8,7 +8,9 @@ import {
   XCircleIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
+  TrashIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { sendReplyEmail, isEmailConfigured } from '../../services/emailService';
@@ -22,6 +24,9 @@ export default function MessagesManager({ isArabic }) {
   const [sendingReply, setSendingReply] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, pending, replied
+  const [showNewReplyForm, setShowNewReplyForm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchMessages();
@@ -146,6 +151,98 @@ export default function MessagesManager({ isArabic }) {
       toast.error(isArabic ? 'خطأ في إرسال الرد' : 'Erreur lors de l\'envoi de la réponse');
     } finally {
       setSendingReply(false);
+    }
+  };
+
+  const handleSendAnotherReply = async (e) => {
+    e.preventDefault();
+    
+    if (!replyText.trim()) {
+      toast.error(isArabic ? 'الرجاء كتابة رد' : 'Veuillez écrire une réponse');
+      return;
+    }
+
+    try {
+      setSendingReply(true);
+      
+      // Send email notification if configured
+      if (isEmailConfigured()) {
+        const emailResult = await sendReplyEmail({
+          toEmail: selectedMessage.email,
+          toName: selectedMessage.name,
+          subject: selectedMessage.subject,
+          originalMessage: selectedMessage.message,
+          replyMessage: replyText.trim(),
+          language: isArabic ? 'ar' : 'fr'
+        });
+
+        if (emailResult.success) {
+          toast.success(
+            isArabic 
+              ? '✅ تم إرسال الرد الجديد بنجاح' 
+              : '✅ Nouveau message envoyé avec succès'
+          );
+        } else {
+          toast.error(
+            isArabic 
+              ? '❌ فشل إرسال البريد الإلكتروني' 
+              : '❌ Échec de l\'envoi de l\'email'
+          );
+          console.warn('Email sending failed:', emailResult.message);
+        }
+      } else {
+        toast.error(
+          isArabic 
+            ? '❌ البريد الإلكتروني غير مكوّن' 
+            : '❌ Service email non configuré'
+        );
+        console.warn('Email service not configured');
+      }
+      
+      setShowNewReplyForm(false);
+      setReplyText('');
+      
+    } catch (error) {
+      console.error('Error sending another reply:', error);
+      toast.error(isArabic ? 'خطأ في إرسال الرد' : 'Erreur lors de l\'envoi du message');
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete) return;
+
+    try {
+      setDeleting(true);
+      
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'messages', messageToDelete.id));
+      
+      // Update local state
+      setMessages(messages.filter(msg => msg.id !== messageToDelete.id));
+      
+      toast.success(
+        isArabic 
+          ? '✅ تم حذف الرسالة بنجاح' 
+          : '✅ Message supprimé avec succès'
+      );
+      
+      // Close modals
+      setMessageToDelete(null);
+      if (selectedMessage?.id === messageToDelete.id) {
+        setSelectedMessage(null);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error(
+        isArabic 
+          ? '❌ خطأ في حذف الرسالة' 
+          : '❌ Erreur lors de la suppression'
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -289,13 +386,15 @@ export default function MessagesManager({ isArabic }) {
             {filteredMessages.map((message) => (
               <div
                 key={message.id}
-                className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${
+                className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
                   !message.replied ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                 }`}
-                onClick={() => setSelectedMessage(message)}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
+                  <div 
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => setSelectedMessage(message)}
+                  >
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-bold text-gray-900 dark:text-white truncate">
                         {message.name}
@@ -326,8 +425,20 @@ export default function MessagesManager({ isArabic }) {
                     </p>
                   </div>
 
-                  <div className="text-right text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                    {formatDate(message.createdAt)}
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-right text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {formatDate(message.createdAt)}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMessageToDelete(message);
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                      title={isArabic ? 'حذف الرسالة' : 'Supprimer le message'}
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -491,18 +602,140 @@ export default function MessagesManager({ isArabic }) {
 
               {/* Action Buttons for Replied Messages */}
               {selectedMessage.replied && (
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => {
-                      setSelectedMessage(null);
-                      setReplyText('');
-                    }}
-                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-                  >
-                    {isArabic ? 'إغلاق' : 'Fermer'}
-                  </button>
+                <div className="space-y-4">
+                  {/* New Reply Form */}
+                  {showNewReplyForm ? (
+                    <form onSubmit={handleSendAnotherReply} className="border dark:border-gray-600 rounded-xl p-6 bg-blue-50 dark:bg-blue-900/20">
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          {isArabic ? 'رسالة جديدة' : 'Nouveau Message'}
+                        </label>
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          rows={6}
+                          className="w-full px-4 py-3 border dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary-500 resize-none"
+                          placeholder={isArabic ? 'اكتب رسالتك هنا...' : 'Écrivez votre message ici...'}
+                          required
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          type="submit"
+                          disabled={sendingReply}
+                          className="flex-1 bg-primary-600 hover:bg-primary-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {sendingReply ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                              {isArabic ? 'جاري الإرسال...' : 'Envoi...'}
+                            </>
+                          ) : (
+                            <>
+                              <PaperAirplaneIcon className="w-5 h-5" />
+                              {isArabic ? 'إرسال' : 'Envoyer'}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewReplyForm(false);
+                            setReplyText('');
+                          }}
+                          className="px-6 py-3 border dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                        >
+                          {isArabic ? 'إلغاء' : 'Annuler'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowNewReplyForm(true)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                      >
+                        <ArrowPathIcon className="w-5 h-5" />
+                        {isArabic ? 'إرسال رسالة أخرى' : 'Renvoyer un Message'}
+                      </button>
+                      <button
+                        onClick={() => setMessageToDelete(selectedMessage)}
+                        className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                        {isArabic ? 'حذف' : 'Supprimer'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedMessage(null);
+                          setReplyText('');
+                          setShowNewReplyForm(false);
+                        }}
+                        className="px-6 py-3 bg-gray-200 dark:bg-gray-700 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                      >
+                        {isArabic ? 'إغلاق' : 'Fermer'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {messageToDelete && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <TrashIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                {isArabic ? 'تأكيد الحذف' : 'Confirmer la Suppression'}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                {isArabic 
+                  ? 'هل أنت متأكد من حذف هذه الرسالة؟ لا يمكن التراجع عن هذا الإجراء.'
+                  : 'Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.'}
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6 text-left">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="font-bold">{isArabic ? 'من: ' : 'De: '}</span>
+                  {messageToDelete.name}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-bold">{isArabic ? 'الموضوع: ' : 'Sujet: '}</span>
+                  {messageToDelete.subject}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteMessage}
+                  disabled={deleting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      {isArabic ? 'جاري الحذف...' : 'Suppression...'}
+                    </>
+                  ) : (
+                    <>
+                      <TrashIcon className="w-5 h-5" />
+                      {isArabic ? 'نعم، حذف' : 'Oui, Supprimer'}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setMessageToDelete(null)}
+                  disabled={deleting}
+                  className="flex-1 px-6 py-3 border dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50"
+                >
+                  {isArabic ? 'إلغاء' : 'Annuler'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
