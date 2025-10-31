@@ -11,6 +11,7 @@ import {
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { sendReplyEmail, isEmailConfigured } from '../../services/emailService';
 
 export default function MessagesManager({ isArabic }) {
   const [messages, setMessages] = useState([]);
@@ -86,6 +87,7 @@ export default function MessagesManager({ isArabic }) {
     try {
       setSendingReply(true);
       
+      // Save reply to Firestore first
       const messageRef = doc(db, 'messages', selectedMessage.id);
       await updateDoc(messageRef, {
         replied: true,
@@ -95,14 +97,46 @@ export default function MessagesManager({ isArabic }) {
         status: 'replied'
       });
 
-      toast.success(isArabic ? 'تم إرسال الرد بنجاح' : 'Réponse envoyée avec succès');
-      
       // Update local state
       setMessages(messages.map(msg => 
         msg.id === selectedMessage.id 
           ? { ...msg, replied: true, replyText: replyText.trim(), repliedAt: new Date().toISOString(), status: 'replied' }
           : msg
       ));
+
+      // Send email notification if configured
+      if (isEmailConfigured()) {
+        const emailResult = await sendReplyEmail({
+          toEmail: selectedMessage.email,
+          toName: selectedMessage.name,
+          subject: selectedMessage.subject,
+          originalMessage: selectedMessage.message,
+          replyMessage: replyText.trim(),
+          language: isArabic ? 'ar' : 'fr'
+        });
+
+        if (emailResult.success) {
+          toast.success(
+            isArabic 
+              ? '✅ تم إرسال الرد بنجاح وإرساله بالبريد الإلكتروني' 
+              : '✅ Réponse envoyée avec succès et email envoyé'
+          );
+        } else {
+          toast.success(
+            isArabic 
+              ? '✅ تم حفظ الرد (فشل إرسال البريد الإلكتروني)' 
+              : '✅ Réponse sauvegardée (email non envoyé)'
+          );
+          console.warn('Email sending failed:', emailResult.message);
+        }
+      } else {
+        toast.success(
+          isArabic 
+            ? '✅ تم حفظ الرد (البريد الإلكتروني غير مكوّن)' 
+            : '✅ Réponse sauvegardée (email non configuré)'
+        );
+        console.warn('Email service not configured');
+      }
       
       setSelectedMessage(null);
       setReplyText('');
