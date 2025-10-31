@@ -60,17 +60,18 @@ export default function NotificationBell() {
       >
         <BellIcon className="w-7 h-7 text-white" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse shadow-lg">
+          <span className="absolute -top-1 -end-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse shadow-lg">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* Notification Panel - Professional right-aligned dropdown
-          Always positioned on the right for modern, professional look
+      {/* Notification Panel - Professional end-aligned dropdown
+          Always positioned at the end (right in LTR, left in RTL)
+          Uses 'end-0' instead of 'right-0' for automatic RTL support
           z-[9999]: Ensures panel appears above all dashboard elements */}
       {isOpen && (
-        <div className="absolute top-14 right-0 w-[480px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
+        <div className="absolute top-14 end-0 w-[480px] max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[9999] max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
