@@ -37,14 +37,16 @@ export default function CourseView() {
     
     // Record view start time
     viewStartTime.current = Date.now();
-    
-    // Track course view when component unmounts
+  }, [courseId]);
+
+  // Track course view when component unmounts
+  useEffect(() => {
     return () => {
-      if (course && !viewTracked.current) {
+      if (course && currentUser && userProfile && !viewTracked.current) {
         trackCourseView();
       }
     };
-  }, [courseId]);
+  }, [course, currentUser, userProfile]);
 
   const fetchCourse = async () => {
     try {
