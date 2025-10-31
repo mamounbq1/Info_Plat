@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../config/firebase';
 import { 
@@ -11,10 +11,15 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-export default function FileUpload({ onFilesUploaded, isArabic, maxFiles = 10 }) {
-  const [files, setFiles] = useState([]);
+export default function FileUpload({ onFilesUploaded, existingFiles = [], isArabic, maxFiles = 10 }) {
+  const [files, setFiles] = useState(existingFiles);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
+
+  // Update files when existingFiles prop changes
+  useEffect(() => {
+    setFiles(existingFiles);
+  }, [existingFiles]);
 
   const getFileIcon = (fileType) => {
     if (fileType.startsWith('image/')) return <PhotoIcon className="w-6 h-6" />;

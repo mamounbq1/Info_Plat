@@ -45,12 +45,12 @@ export default function EnhancedStudentDashboard() {
   const [courses, setCourses] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [exercises, setExercises] = useState([]);
+  const [subjects, setSubjects] = useState([]); // NEW: Subjects for filter
   const [loading, setLoading] = useState(true);
   
-  // Filter states
+  // Filter states - SIMPLIFIED: Only search, subject, and date sort
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedSubject, setSelectedSubject] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
   
   // User interaction states
@@ -91,6 +91,7 @@ export default function EnhancedStudentDashboard() {
 
   useEffect(() => {
     fetchData();
+    fetchSubjects();
   }, []);
 
   useEffect(() => {
@@ -105,6 +106,23 @@ export default function EnhancedStudentDashboard() {
       setEnrolledCourses(userProfile.enrolledCourses);
     }
   }, [userProfile]);
+
+  const fetchSubjects = async () => {
+    try {
+      const subjectsQuery = query(collection(db, 'subjects'), orderBy('order', 'asc'));
+      const subjectsSnapshot = await getDocs(subjectsQuery);
+      const subjectsData = subjectsSnapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+      setSubjects(subjectsData);
+      console.log('✅ Subjects loaded:', subjectsData.length);
+    } catch (error) {
+      console.error('⚠️ Error fetching subjects:', error);
+      // Don't show error toast, subjects are optional for filtering
+      setSubjects([]);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -205,7 +223,7 @@ export default function EnhancedStudentDashboard() {
 
   const filteredCounts = getFilteredCounts();
 
-  // Filter and sort courses (only non-enrolled courses for Browse section)
+  // Filter and sort courses - SIMPLIFIED: Only by subject and date
   const filteredAndSortedCourses = courses
     .filter(course => {
       // Exclude enrolled courses from browse section
@@ -221,26 +239,20 @@ export default function EnhancedStudentDashboard() {
         course.descriptionFr?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.descriptionAr?.includes(searchTerm);
       
-      // Category filter
-      const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
+      // Subject filter (matière) - NEW SIMPLIFIED FILTER
+      const matchesSubject = selectedSubject === 'all' || course.subject === selectedSubject;
       
-      // Level filter (old difficulty level filter, not academic level)
-      const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
-      
-      return notEnrolled && matchesStudentClassLevel && matchesSearch && matchesCategory && matchesLevel;
+      return notEnrolled && matchesStudentClassLevel && matchesSearch && matchesSubject;
     })
     .sort((a, b) => {
+      // Date sorting only - SIMPLIFIED
       switch(sortBy) {
         case 'recent':
           return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'popular':
-          return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
-        case 'progress':
-          return getProgressPercentage(b.id) - getProgressPercentage(a.id);
-        case 'alphabetical':
-          return (isArabic ? a.titleAr : a.titleFr).localeCompare(isArabic ? b.titleAr : b.titleFr);
+        case 'oldest':
+          return new Date(a.createdAt) - new Date(b.createdAt);
         default:
-          return 0;
+          return new Date(b.createdAt) - new Date(a.createdAt);
       }
     });
 
@@ -253,7 +265,7 @@ export default function EnhancedStudentDashboard() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedLevel, sortBy]);
+  }, [searchTerm, selectedSubject, sortBy]);
 
   // Bookmark/Like handlers
   const toggleBookmark = async (courseId) => {
@@ -548,18 +560,17 @@ export default function EnhancedStudentDashboard() {
           />
         )}
 
-        {/* Course Filters - Search Section */}
+        {/* Course Filters - SIMPLIFIED: Only Date and Subject */}
         <CourseFilters 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          selectedLevel={selectedLevel}
-          setSelectedLevel={setSelectedLevel}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
           sortBy={sortBy}
           setSortBy={setSortBy}
           isArabic={isArabic}
           resultCount={filteredAndSortedCourses.length}
+          subjects={subjects}
         />
 
         {/* Browse Available Courses Section */}

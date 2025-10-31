@@ -40,3 +40,7 @@ ui-debug.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Core dumps
+core
+core.*
