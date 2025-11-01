@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -295,6 +295,22 @@ export default function QuizTaking() {
       await updateDoc(userRef, {
         [`quizAttempts.${quizId}`]: arrayUnion(attempt)
       });
+      
+      // ⭐ Track quiz submission for teacher statistics
+      try {
+        await addDoc(collection(db, 'quizSubmissions'), {
+          quizId: quizId,
+          userId: currentUser.uid,
+          studentName: userProfile.fullName || userProfile.email,
+          answers: serializedAnswers, // Use serialized answers (no nested arrays)
+          score: score,
+          submittedAt: new Date().toISOString()
+        });
+        console.log('✅ Quiz submission tracked for teacher stats');
+      } catch (trackError) {
+        console.error('Error tracking quiz submission:', trackError);
+        // Don't fail the entire submission if tracking fails
+      }
 
       // Show success message
       if (autoSubmit) {

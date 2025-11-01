@@ -32,10 +32,10 @@ service cloud.firestore {
              request.resource.data.subject == getTeacherSubject();
     }
     
-    // Helper function to validate targetLevels is present and non-empty
-    function hasValidTargetLevels() {
-      return request.resource.data.targetLevels is list && 
-             request.resource.data.targetLevels.size() > 0;
+    // Helper function to validate targetClasses is present and non-empty
+    function hasValidTargetClasses() {
+      return request.resource.data.targetClasses is list && 
+             request.resource.data.targetClasses.size() > 0;
     }
     
     // Users collection - users can read all profiles, users can write their own, admins can write any
@@ -53,16 +53,16 @@ service cloud.firestore {
     }
     
     // Courses collection - anyone authenticated can read, teachers and admins can write
-    // ACADEMIC HIERARCHY: Validate subject matches teacher's subject and targetLevels is present
+    // ACADEMIC HIERARCHY: Validate subject matches teacher's subject and targetClasses is present
     match /courses/{courseId} {
       allow read: if request.auth != null;
       allow create: if isTeacherOrAdmin() && 
                        validateCourseSubject() && 
-                       hasValidTargetLevels();
+                       hasValidTargetClasses();
       allow update: if isTeacherOrAdmin() && 
                        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName) &&
                        validateCourseSubject() && 
-                       hasValidTargetLevels();
+                       hasValidTargetClasses();
       allow delete: if isTeacherOrAdmin() && 
                        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
     }
@@ -172,6 +172,52 @@ service cloud.firestore {
     match /pageContents/{pageId} {
       allow read: if true; // Public read access for all CMS-managed pages
       allow write: if isAdmin(); // Only admins can manage page content
+    }
+    
+    // ✨ ANALYTICS SYSTEM - Track visitors and page views
+    // Analytics collection - anyone can write (for tracking), only admins can read
+    match /analytics/{analyticsId} {
+      allow create: if true; // Allow all visitors (authenticated or not) to create page view records
+      allow read: if isAdmin(); // Only admins can read analytics data
+      allow update, delete: if false; // No updates or deletes allowed (immutable log)
+    }
+    
+    // Visitor Stats collection - anyone can write/update (for tracking), only admins can read
+    match /visitorStats/{visitorId} {
+      allow create, update: if true; // Allow all visitors to create/update their stats
+      allow read: if isAdmin(); // Only admins can read visitor statistics
+      allow delete: if false; // No deletes allowed
+    }
+    
+    // Daily Stats collection - anyone can write/update (for tracking), only admins can read
+    match /dailyStats/{dateId} {
+      allow create, update: if true; // Allow updating daily aggregated stats
+      allow read: if isAdmin(); // Only admins can read daily statistics
+      allow delete: if false; // No deletes allowed
+    }
+    
+    // ✨ TEACHER STATISTICS SYSTEM - Track student engagement and performance
+    
+    // Course Views collection - students can write their views, teachers and admins can read
+    match /courseViews/{viewId} {
+      allow create: if request.auth != null; // Students can log course views
+      allow read: if request.auth != null && (isTeacherOrAdmin()); // Teachers and admins can read views
+      allow update, delete: if false; // Immutable log
+    }
+    
+    // Quiz Submissions collection - students can write submissions, teachers and admins can read
+    match /quizSubmissions/{submissionId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId; // Students can submit
+      allow read: if request.auth != null && (isTeacherOrAdmin() || request.auth.uid == resource.data.userId); // Teachers, admins, and student themselves can read
+      allow update, delete: if false; // Immutable submissions
+    }
+    
+    // Exercise Submissions collection - students can create, teachers can read and update (for grading)
+    match /exerciseSubmissions/{submissionId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId; // Students can submit
+      allow read: if request.auth != null && (isTeacherOrAdmin() || request.auth.uid == resource.data.userId); // Teachers, admins, and student themselves can read
+      allow update: if isTeacherOrAdmin(); // Teachers and admins can grade (update with grade/feedback)
+      allow delete: if isAdmin(); // Only admins can delete
     }
 
   }

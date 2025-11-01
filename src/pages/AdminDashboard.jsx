@@ -5,13 +5,18 @@ import {
   DocumentIcon, 
   AcademicCapIcon,
   HomeIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  ChartBarIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import Sidebar from '../components/Sidebar';
 import HomeContentManager from '../components/HomeContentManager';
 import GeneralSettingsManager from '../components/GeneralSettingsManager';
 import AcademicStructureManagement from '../components/AcademicStructureManagement';
 import PageManager from '../components/PageManager';
+import AdminAnalytics from '../components/AdminAnalytics';
+import NotificationBell from '../components/NotificationBell';
+import MessagesManager from '../components/admin/MessagesManager';
 
 
 
@@ -19,7 +24,7 @@ export default function AdminDashboard() {
   const { userProfile } = useAuth();
   const { isArabic } = useLanguage();
   const [activeTab, setActiveTab] = useState('content'); // 'content', 'structure', 'pages'
-  const [contentSubTab, setContentSubTab] = useState('settings'); // 'settings', 'homepage'
+  const [contentSubTab, setContentSubTab] = useState('settings'); // 'settings', 'homepage', 'analytics'
   
   // Sidebar state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -50,6 +55,10 @@ export default function AdminDashboard() {
               <p className="text-purple-100">
                 {isArabic ? 'إدارة كاملة للموقع' : 'Gestion complète du site'}
               </p>
+            </div>
+            {/* Notification Bell - Moved here for better visibility */}
+            <div className="relative">
+              <NotificationBell />
             </div>
           </div>
         </div>
@@ -125,6 +134,28 @@ export default function AdminDashboard() {
                   <HomeIcon className="w-5 h-5" />
                   <span>{isArabic ? 'محتوى الصفحة الرئيسية' : 'Contenu de la Page d\'Accueil'}</span>
                 </button>
+                <button
+                  onClick={() => setContentSubTab('analytics')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
+                    contentSubTab === 'analytics'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <ChartBarIcon className="w-5 h-5" />
+                  <span>{isArabic ? 'الإحصائيات' : 'Analytics & Statistiques'}</span>
+                </button>
+                <button
+                  onClick={() => setContentSubTab('messages')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
+                    contentSubTab === 'messages'
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <EnvelopeIcon className="w-5 h-5" />
+                  <span>{isArabic ? 'الرسائل' : 'Messages'}</span>
+                </button>
               </nav>
             </div>
 
@@ -134,6 +165,10 @@ export default function AdminDashboard() {
                 <GeneralSettingsManager />
               ) : contentSubTab === 'homepage' ? (
                 <HomeContentManager />
+              ) : contentSubTab === 'analytics' ? (
+                <AdminAnalytics />
+              ) : contentSubTab === 'messages' ? (
+                <MessagesManager isArabic={isArabic} />
               ) : null}
             </div>
           </div>
