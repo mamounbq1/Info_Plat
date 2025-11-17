@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Helper function to check if user is teacher
+    function isTeacher() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    // Helper function to check if user is teacher or admin
+    function isTeacherOrAdmin() {
+      return isAdmin() || isTeacher();
+    }
+    
+    // Helper function to get teacher's subject
+    function getTeacherSubject() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subject;
+    }
+    
+    // Helper function to validate course subject matches teacher's subject
+    function validateCourseSubject() {
+      return isAdmin() || 
+             !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+             !('subject' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+             request.resource.data.subject == getTeacherSubject();
+    }
+    
+    // Helper function to validate targetLevels is present and non-empty
+    function hasValidTargetLevels() {
+      return request.resource.data.targetLevels is list && 
+             request.resource.data.targetLevels.size() > 0;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth.uid == userId || isAdmin();
+    }
+    
+    // Messages collection
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Courses collection
+    match /courses/{courseId} {
+      allow read: if request.auth != null;
+      allow create: if isTeacherOrAdmin() && 
+                       validateCourseSubject() && 
+                       hasValidTargetLevels();
+      allow update: if isTeacherOrAdmin() && 
+                       (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName) &&
+                       validateCourseSubject() && 
+                       hasValidTargetLevels();
+      allow delete: if isTeacherOrAdmin() && 
+                       (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
+    }
+    
+    // Quizzes collection
+    match /quizzes/{quizId} {
+      allow read: if request.auth != null;
+      allow create: if isTeacherOrAdmin();
+      allow update, delete: if isTeacherOrAdmin() && 
+        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
+    }
+    
+    // Exercises collection
+    match /exercises/{exerciseId} {
+      allow read: if request.auth != null;
+      allow create: if isTeacherOrAdmin();
+      allow update, delete: if isTeacherOrAdmin() && 
+        (isAdmin() || resource.data.createdBy == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.fullName);
+    }
+    
+    // Quiz results
+    match /quizResults/{resultId} {
+      allow read: if request.auth != null && 
+                     (request.auth.uid == resource.data.studentId || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.studentId;
+    }
+    
+    // Homepage collections
+    match /homepage/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-features/{featureId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-clubs/{clubId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-gallery/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /homepage-quicklinks/{linkId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Academic collections
+    match /academicLevels/{levelId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /branches/{branchId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /classes/{classId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    match /subjects/{subjectId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Site settings
+    match /siteSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Page contents
+    match /pageContents/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Analytics collections
+    match /analytics/{analyticsId} {
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+    
+    match /visitorStats/{visitorId} {
+      allow create, update: if true;
+      allow read: if isAdmin();
+      allow delete: if false;
+    }
+    
+    match /dailyStats/{dateId} {
+      allow create, update: if true;
+      allow read: if isAdmin();
+      allow delete: if false;
+    }
+    
+    // ⭐⭐⭐ STATISTICS COLLECTIONS - CRITICAL FOR TEACHER DASHBOARD ⭐⭐⭐
+    
+    // Course Views - Track which students viewed which courses
+    match /courseViews/{viewId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Quiz Submissions - Store quiz attempts with answers
+    match /quizSubmissions/{submissionId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Exercise Submissions - Store exercise submissions and grades
+    match /exerciseSubmissions/{submissionId} {
+      allow read, write: if request.auth != null;
+    }
+
+  }
+}

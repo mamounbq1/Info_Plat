@@ -63,8 +63,9 @@ export function useHomeContent() {
   const [testimonials, setTestimonials] = useState(cachedContent?.testimonials || []);
   const [stats, setStats] = useState(cachedContent?.stats || null);
   
-  // ✨ NOUVEAU: États pour les 5 nouvelles sections
+  // ✨ NOUVEAU: États pour les nouvelles sections
   const [announcements, setAnnouncements] = useState(cachedContent?.announcements || []);
+  const [events, setEvents] = useState(cachedContent?.events || []);
   const [clubs, setClubs] = useState(cachedContent?.clubs || []);
   const [gallery, setGallery] = useState(cachedContent?.gallery || []);
   const [quickLinks, setQuickLinks] = useState(cachedContent?.quickLinks || []);
@@ -96,6 +97,7 @@ export function useHomeContent() {
           testimonials,
           stats,
           announcements,
+          events,
           clubs,
           gallery,
           quickLinks,
@@ -110,7 +112,7 @@ export function useHomeContent() {
         console.warn('Failed to cache home content:', error);
       }
     }
-  }, [heroContent, features, news, testimonials, stats, announcements, clubs, gallery, quickLinks, contactInfo, aboutContent, footerContent, sectionVisibility, loading]);
+  }, [heroContent, features, news, testimonials, stats, announcements, events, clubs, gallery, quickLinks, contactInfo, aboutContent, footerContent, sectionVisibility, loading]);
 
   const fetchHomeContent = async () => {
     try {
@@ -269,6 +271,35 @@ export function useHomeContent() {
           console.log(`✅ [Announcements] Loaded ${announcementsData.length} with fallback`);
         } catch (fallbackError) {
           console.log('❌ [Announcements] Fallback failed:', fallbackError.message);
+        }
+      }
+
+      // ✨ NOUVEAU: Fetch Events
+      try {
+        const eventsQuery = query(
+          collection(db, 'homepage-events'),
+          where('enabled', '==', true),
+          orderBy('order', 'asc')
+        );
+        const eventsSnapshot = await getDocs(eventsQuery);
+        const eventsData = eventsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setEvents(eventsData);
+        console.log(`✅ [Events] Loaded ${eventsData.length} events with index`);
+      } catch (error) {
+        console.log('⚠️ [Events] Index not found, using fallback query');
+        try {
+          const allEventsSnapshot = await getDocs(collection(db, 'homepage-events'));
+          const eventsData = allEventsSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(e => e.enabled)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+          setEvents(eventsData);
+          console.log(`✅ [Events] Loaded ${eventsData.length} with fallback`);
+        } catch (fallbackError) {
+          console.log('❌ [Events] Fallback failed:', fallbackError.message);
         }
       }
 
@@ -458,8 +489,9 @@ export function useHomeContent() {
     news,
     testimonials,
     stats,
-    // ✨ NOUVEAU: Retourner les 6 nouvelles sections
+    // ✨ NOUVEAU: Retourner les nouvelles sections
     announcements,
+    events,
     clubs,
     gallery,
     quickLinks,

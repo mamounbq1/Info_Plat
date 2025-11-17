@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
-import NotificationBell from './NotificationBell';
 import { 
   HomeIcon,
   BookmarkIcon,
@@ -200,12 +199,9 @@ export default function Sidebar({ isOpen, setIsOpen, isCollapsed, setIsCollapsed
             </div>
           )}
 
-          {/* Right Side Actions - Notification Bell and Collapse Button */}
+          {/* Right Side Actions - Collapse Button */}
           {!isCollapsed && (
             <div className="flex items-center gap-1">
-              {/* Notification Bell - Only for admins */}
-              {isAdmin && <NotificationBell />}
-
               {/* Desktop Collapse Button */}
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   DocumentTextIcon,
   ArrowDownTrayIcon,
@@ -8,7 +8,8 @@ import {
   EyeIcon,
   FolderIcon,
   LockClosedIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import { canAccessQuizOrExercise, getCourseProgress, matchesStudentClassOrLevel } from '../utils/courseProgress';
 
@@ -102,6 +103,8 @@ export default function AvailableExercises({ exercises, userProfile, isArabic })
 
 // Exercise Card Component
 function ExerciseCard({ exercise, isArabic, viewMode, userProfile }) {
+  const navigate = useNavigate();
+  
   // Check if exercise is locked based on course completion
   const accessCheck = canAccessQuizOrExercise(userProfile, exercise.courseId);
   const isLocked = !accessCheck.canAccess;
@@ -219,8 +222,8 @@ function ExerciseCard({ exercise, isArabic, viewMode, userProfile }) {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex-shrink-0 flex gap-2">
+          {/* Action Button */}
+          <div className="flex-shrink-0">
             {isLocked ? (
               <button
                 disabled
@@ -230,36 +233,13 @@ function ExerciseCard({ exercise, isArabic, viewMode, userProfile }) {
                 {isArabic ? 'مغلق' : 'Verrouillé'}
               </button>
             ) : (
-              <>
-                {exercise.type === 'file' && exercise.files && exercise.files.length > 0 && (
-                  <button
-                    onClick={() => handleDownload(exercise.files[0])}
-                    className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                    {isArabic ? 'تحميل' : 'Télécharger'}
-                  </button>
-                )}
-                {exercise.type === 'link' && exercise.externalLink && (
-                  <a
-                    href={exercise.externalLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                    {isArabic ? 'فتح' : 'Ouvrir'}
-                  </a>
-                )}
-                {exercise.type === 'text' && (
-                  <button
-                    className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                    {isArabic ? 'عرض' : 'Voir'}
-                  </button>
-                )}
-              </>
+              <button
+                onClick={() => navigate(`/exercise/${exercise.id}`)}
+                className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <PencilSquareIcon className="w-4 h-4" />
+                {isArabic ? 'بدء التمرين' : 'Passer l\'exercice'}
+              </button>
             )}
           </div>
         </div>
@@ -338,8 +318,8 @@ function ExerciseCard({ exercise, isArabic, viewMode, userProfile }) {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-2">
+        {/* Action Button */}
+        <div>
           {isLocked ? (
             <button
               disabled
@@ -349,43 +329,13 @@ function ExerciseCard({ exercise, isArabic, viewMode, userProfile }) {
               {isArabic ? 'مغلق' : 'Verrouillé'}
             </button>
           ) : (
-            <>
-              {exercise.type === 'file' && exercise.files && exercise.files.length > 0 && (
-                <>
-                  <button
-                    onClick={() => handleDownload(exercise.files[0])}
-                    className="w-full text-center py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    <ArrowDownTrayIcon className="w-4 h-4" />
-                    {isArabic ? 'تحميل' : 'Télécharger'}
-                  </button>
-                  {exercise.files.length > 1 && (
-                    <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-                      +{exercise.files.length - 1} {isArabic ? 'ملفات أخرى' : 'autres fichiers'}
-                    </p>
-                  )}
-                </>
-              )}
-              {exercise.type === 'link' && exercise.externalLink && (
-                <a
-                  href={exercise.externalLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full text-center py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  {isArabic ? 'فتح الرابط' : 'Ouvrir le lien'}
-                </a>
-              )}
-              {exercise.type === 'text' && (
-                <button
-                  className="w-full text-center py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <EyeIcon className="w-4 h-4" />
-                  {isArabic ? 'عرض النص' : 'Voir le texte'}
-                </button>
-              )}
-            </>
+            <button
+              onClick={() => navigate(`/exercise/${exercise.id}`)}
+              className="w-full text-center py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              {isArabic ? 'بدء التمرين' : 'Passer l\'exercice'}
+            </button>
           )}
         </div>
       </div>

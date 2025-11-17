@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import SharedLayout from '../components/SharedLayout';
 import { useLanguage } from '../contexts/LanguageContext';
 import { PhoneIcon, EnvelopeIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import toast from 'react-hot-toast';
 
@@ -17,6 +17,7 @@ export default function ContactPage() {
     subject: '',
     message: ''
   });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchContactInfo();
@@ -38,11 +39,38 @@ export default function ContactPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In real app, would send to Firestore
-    toast.success(isArabic ? 'تم إرسال رسالتك بنجاح!' : 'Votre message a été envoyé avec succès!');
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    
+    try {
+      setSubmitting(true);
+      
+      // Save message to Firestore 'messages' collection
+      const messageData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || '',
+        subject: formData.subject,
+        message: formData.message,
+        createdAt: new Date().toISOString(), // NotificationContext expects 'createdAt'
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        status: 'pending', // NotificationContext listens for 'pending' status
+        replied: false
+      };
+      
+      await addDoc(collection(db, 'messages'), messageData);
+      
+      toast.success(isArabic ? 'تم إرسال رسالتك بنجاح!' : 'Votre message a été envoyé avec succès!');
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error(isArabic ? 'حدث خطأ أثناء إرسال الرسالة' : 'Erreur lors de l\'envoi du message');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const defaultContact = {
@@ -256,9 +284,15 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 text-white font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200"
+                  disabled={submitting}
+                  className={`w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 text-white font-bold rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 ${
+                    submitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  {isArabic ? 'إرسال الرسالة' : 'Envoyer le Message'}
+                  {submitting 
+                    ? (isArabic ? 'جاري الإرسال...' : 'Envoi en cours...') 
+                    : (isArabic ? 'إرسال الرسالة' : 'Envoyer le Message')
+                  }
                 </button>
               </form>
             </div>

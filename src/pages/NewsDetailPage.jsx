@@ -205,12 +205,11 @@ export default function NewsDetailPage() {
             </div>
 
             {/* Featured Image */}
-            {article.image && (
+            {article.imageUrl && (
               <div className="relative rounded-2xl overflow-hidden shadow-2xl mb-12 h-96">
                 <img
-                  src={article.image}
+                  src={article.imageUrl}
                   alt={isArabic ? article.titleAr : article.titleFr}
-                  crossOrigin="anonymous"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.target.parentElement.className = 'relative rounded-2xl overflow-hidden shadow-2xl mb-12 h-96 bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center';
@@ -256,11 +255,10 @@ export default function NewsDetailPage() {
                 >
                   {/* Image */}
                   <div className="relative h-48 bg-gradient-to-br from-blue-500 to-violet-600">
-                    {relatedArticle.image ? (
+                    {relatedArticle.imageUrl ? (
                       <img
-                        src={relatedArticle.image}
+                        src={relatedArticle.imageUrl}
                         alt={isArabic ? relatedArticle.titleAr : relatedArticle.titleFr}
-                        crossOrigin="anonymous"
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={(e) => e.target.style.display = 'none'}
                       />

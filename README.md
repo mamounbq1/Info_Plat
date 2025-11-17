@@ -2,6 +2,38 @@
 
 A modern, bilingual (French/Arabic) educational platform designed for Moroccan high school students in Tronc Commun. Features include course management, interactive quizzes, progress tracking, and a clean mobile-friendly interface.
 
+---
+
+## ⚠️ IMPORTANT - LIRE EN PREMIER
+
+### 🌿 Stratégie de Branches
+
+**RÈGLE D'OR** : La branche de développement principale est **`genspark_ai_developer`**
+
+```
+🚀 genspark_ai_developer  = Branche de développement (TOUJOURS travailler ici)
+🌐 main                   = Branche de production (déploiement Vercel)
+```
+
+**📖 Documentation complète** : Voir [`README_IMPORTANT.md`](./README_IMPORTANT.md) et [`BRANCH_STRATEGY.md`](./BRANCH_STRATEGY.md)
+
+**Workflow rapide** :
+```bash
+# 1. Toujours vérifier la branche avant de coder
+git checkout genspark_ai_developer
+
+# 2. Faire vos modifications
+
+# 3. Commiter IMMÉDIATEMENT
+git add .
+git commit -m "feat: description"
+git push origin genspark_ai_developer
+
+# 4. Créer une PR vers main pour déploiement
+```
+
+---
+
 ## ✨ Features
 
 ### 👥 User Roles
@@ -239,27 +271,47 @@ The platform supports both French and Arabic:
 moroccan-edu-platform/
 ├── src/
 │   ├── components/         # Reusable UI components
-│   │   └── Navbar.jsx     # Navigation bar
+│   │   ├── Navbar.jsx                # Navigation bar
+│   │   ├── Sidebar.jsx               # Responsive sidebar
+│   │   ├── FileUpload.jsx            # File upload component
+│   │   └── pageEditors/              # CMS page editors
 │   ├── contexts/          # React Context providers
-│   │   ├── AuthContext.jsx      # Authentication state
-│   │   └── LanguageContext.jsx  # Language/i18n state
+│   │   ├── AuthContext.jsx           # Authentication state
+│   │   └── LanguageContext.jsx       # Language/i18n state
 │   ├── pages/             # Page components
-│   │   ├── Home.jsx              # Landing page
-│   │   ├── Login.jsx             # Login page
-│   │   ├── Signup.jsx            # Registration page
-│   │   ├── StudentDashboard.jsx  # Student interface
-│   │   ├── AdminDashboard.jsx    # Teacher interface
-│   │   └── CourseView.jsx        # Course viewer
+│   │   ├── LandingPage.jsx           # Landing page (CMS-enabled)
+│   │   ├── Login.jsx                 # Login page
+│   │   ├── Signup.jsx                # Registration page
+│   │   ├── StudentDashboard.jsx      # Student interface
+│   │   ├── TeacherDashboard.jsx      # Teacher interface ⭐ ADVANCED
+│   │   ├── AdminDashboard.jsx        # Admin interface with CMS
+│   │   └── CourseView.jsx            # Course viewer
 │   ├── config/            # Configuration files
-│   │   └── firebase.js           # Firebase config
+│   │   └── firebase.js               # Firebase config
 │   ├── App.jsx            # Main app component
 │   ├── main.jsx          # Entry point
 │   └── index.css         # Global styles
 ├── public/               # Static assets
+├── docs/                 # Documentation
+│   ├── README_IMPORTANT.md                    # ⚠️ Branch strategy
+│   ├── BRANCH_STRATEGY.md                     # Detailed branch guide
+│   ├── TEACHER_DASHBOARD_FEATURES.md          # Teacher features
+│   ├── TEACHER_DASHBOARD_SUMMARY.md           # Teacher guide & tests
+│   ├── PROJECT_COMPLETION_SUMMARY.md          # Project overview
+│   └── VERCEL_*.md                            # Vercel guides
 ├── .env.example         # Environment variables template
 ├── package.json         # Dependencies
+├── vercel.json          # Vercel deployment config
 └── README.md           # This file
 ```
+
+## 📚 Documentation
+
+- **[⚠️ README_IMPORTANT.md](./README_IMPORTANT.md)** - **À LIRE EN PREMIER** - Stratégie des branches
+- **[BRANCH_STRATEGY.md](./BRANCH_STRATEGY.md)** - Guide détaillé Git workflow
+- **[TEACHER_DASHBOARD_FEATURES.md](./TEACHER_DASHBOARD_FEATURES.md)** - Fonctionnalités du Teacher Dashboard
+- **[TEACHER_DASHBOARD_SUMMARY.md](./TEACHER_DASHBOARD_SUMMARY.md)** - Guide et tests Teacher Dashboard
+- **[PROJECT_COMPLETION_SUMMARY.md](./PROJECT_COMPLETION_SUMMARY.md)** - Vue d'ensemble du projet
 
 ## 🔒 Security
 

@@ -20,9 +20,11 @@
  * Contenu dynamique chargé depuis Firestore via useHomeContent hook
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import ContactForm from '../components/ContactForm';
+import ContactSection from '../components/ContactSection';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useHomeContent } from '../hooks/useHomeContent';
@@ -73,6 +75,9 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [currentCarouselImage, setCurrentCarouselImage] = useState(0);
+  
+  // Contact form state (moved to parent to prevent re-render issues)
+  // Contact form state is now managed inside ContactForm component
 
   // Charger le contenu dynamique depuis Firestore
   const {
@@ -82,6 +87,7 @@ export default function LandingPage() {
     testimonials: dynamicTestimonials,
     stats: dynamicStats,
     announcements: dynamicAnnouncements,
+    events: dynamicEvents,
     clubs: dynamicClubs,
     gallery: dynamicGallery,
     quickLinks: dynamicQuickLinks,
@@ -232,15 +238,17 @@ export default function LandingPage() {
       // Default order mapping
       const defaultOrder = {
         hero: 1,
-        announcements: 2,
+        'news-ticker': 2,          // Barre défilante des actualités (scrolling news bar)
         stats: 3,
         about: 4,
         news: 5,
-        clubs: 6,
-        gallery: 7,
-        testimonials: 8,
-        quicklinks: 9,
-        contact: 10,
+        announcements: 6,          // Section des annonces (announcements section)
+        events: 7,                 // Section des événements (events section)
+        clubs: 8,
+        gallery: 9,
+        testimonials: 10,
+        quicklinks: 11,
+        contact: 12,
       };
       return defaultOrder[sectionId] || 999;
     }
@@ -252,10 +260,12 @@ export default function LandingPage() {
   const getOrderedSections = () => {
     const availableSectionIds = [
       'hero',
-      'announcements',
+      'news-ticker',             // Barre défilante des actualités (scrolling news bar)
       'stats',
       'about',
       'news',
+      'announcements',           // Section des annonces (announcements section)
+      'events',                  // Section des événements (events section)
       'clubs',
       'gallery',
       'testimonials',
@@ -267,6 +277,9 @@ export default function LandingPage() {
     const orderedIds = availableSectionIds
       .filter((id) => isSectionEnabled(id))
       .sort((a, b) => getSectionOrder(a) - getSectionOrder(b));
+
+    console.log('📋 [getOrderedSections] Ordered sections:', orderedIds);
+    console.log('📋 [getOrderedSections] Announcements enabled?', isSectionEnabled('announcements'), 'order:', getSectionOrder('announcements'));
 
     // Return array of section components based on IDs
     return orderedIds;
@@ -621,7 +634,8 @@ export default function LandingPage() {
   };
 
   // ==================== SECTION 3: ANNONCES URGENTES ====================
-  const UrgentAnnouncementsBar = () => {
+  // ==================== BARRE DÉFILANTE DES ACTUALITÉS ====================
+  const NewsTickerBar = () => {
     // Get latest 3 news sorted by date (newest first)
     const latestNews = dynamicNews
       ?.sort((a, b) => {
@@ -633,7 +647,7 @@ export default function LandingPage() {
 
     if (latestNews.length === 0) return null;
 
-    const AnnouncementItem = ({ article }) => (
+    const NewsItem = ({ article }) => (
       <button
         onClick={() => navigate(`/news/${article.id}`)}
         className="flex items-center gap-3 whitespace-nowrap px-8 hover:opacity-80 transition-opacity cursor-pointer"
@@ -654,11 +668,11 @@ export default function LandingPage() {
         <div className="flex items-center gap-4 animate-scroll-x">
           {/* First set */}
           {latestNews.map((article, index) => (
-            <AnnouncementItem key={`first-${article.id || index}`} article={article} />
+            <NewsItem key={`first-${article.id || index}`} article={article} />
           ))}
           {/* Duplicate for seamless loop */}
           {latestNews.map((article, index) => (
-            <AnnouncementItem key={`second-${article.id || index}`} article={article} />
+            <NewsItem key={`second-${article.id || index}`} article={article} />
           ))}
         </div>
       </div>
@@ -832,11 +846,10 @@ export default function LandingPage() {
               >
                 {/* Image */}
                 <div className="aspect-[16/10] overflow-hidden bg-gradient-to-br from-blue-500 to-violet-600 relative">
-                  {article.image ? (
+                  {article.imageUrl ? (
                     <img
-                      src={article.image}
+                      src={article.imageUrl}
                       alt={article[isArabic ? 'titleAr' : 'titleFr']}
-                      crossOrigin="anonymous"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -891,6 +904,195 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all hover:scale-105 shadow-lg"
             >
               {t.newsViewAll}
+              <ArrowUpRightIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  // ==================== SECTION 6B: ANNONCES IMPORTANTES ====================
+  const AnnouncementsSection = () => {
+    const announcementsToDisplay = dynamicAnnouncements?.slice(0, 6) || [];
+    console.log('🔔 [AnnouncementsSection] dynamicAnnouncements:', dynamicAnnouncements?.length, 'to display:', announcementsToDisplay.length);
+
+    if (announcementsToDisplay.length === 0) {
+      console.log('⚠️ [AnnouncementsSection] No announcements to display, section hidden');
+      return null;
+    }
+
+    return (
+      <section id="announcements" className="py-24 bg-gradient-to-br from-orange-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <MegaphoneIcon className="w-5 h-5" />
+              {isArabic ? 'الإعلانات' : 'Annonces'}
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              {isArabic ? 'الإعلانات المهمة' : 'Annonces Importantes'}
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              {isArabic ? 'آخر الإعلانات والأخبار العاجلة' : 'Dernières annonces et informations urgentes'}
+            </p>
+          </div>
+
+          {/* Announcements Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {announcementsToDisplay.map((announcement) => (
+              <article
+                key={announcement.id}
+                onClick={() => navigate(`/announcements/${announcement.id}`)}
+                className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all cursor-pointer hover:-translate-y-2"
+              >
+                {/* Urgent Badge */}
+                {announcement.urgent && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <BellAlertIcon className="w-5 h-5 text-red-600 animate-pulse" />
+                    <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold">
+                      {isArabic ? 'عاجل' : 'URGENT'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Icon */}
+                <div className={`w-12 h-12 rounded-xl ${announcement.urgent ? 'bg-red-100 dark:bg-red-900/30' : 'bg-orange-100 dark:bg-orange-900/30'} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <MegaphoneIcon className={`w-6 h-6 ${announcement.urgent ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`} />
+                </div>
+
+                {/* Title */}
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                  {announcement[isArabic ? 'titleAr' : 'titleFr']}
+                </h3>
+
+                {/* Content Preview */}
+                <p className="text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">
+                  {announcement[isArabic ? 'contentAr' : 'contentFr']}
+                </p>
+
+                {/* Date */}
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <CalendarDaysIcon className="w-4 h-4" />
+                  <span>
+                    {announcement.createdAt ? new Date(announcement.createdAt).toLocaleDateString(isArabic ? 'ar-MA' : 'fr-FR') : ''}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* View All Button */}
+          <div className="text-center">
+            <button
+              onClick={() => navigate('/announcements')}
+              className="inline-flex items-center gap-2 bg-orange-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-orange-700 transition-all hover:scale-105 shadow-lg"
+            >
+              {isArabic ? 'عرض جميع الإعلانات' : 'Voir toutes les annonces'}
+              <ArrowUpRightIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  };
+
+  // ==================== SECTION 6C: ÉVÉNEMENTS À VENIR ====================
+  const EventsSection = () => {
+    const eventsToDisplay = dynamicEvents?.slice(0, 6) || [];
+    console.log('📅 [EventsSection] dynamicEvents:', dynamicEvents?.length, 'to display:', eventsToDisplay.length);
+
+    if (eventsToDisplay.length === 0) {
+      console.log('⚠️ [EventsSection] No events to display, section hidden');
+      return null;
+    }
+
+    return (
+      <section id="events" className="py-24 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <CalendarDaysIcon className="w-5 h-5" />
+              {isArabic ? 'الأحداث' : 'Événements'}
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              {isArabic ? 'الأحداث القادمة' : 'Événements à Venir'}
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              {isArabic ? 'لا تفوت أحداثنا وأنشطتنا القادمة' : 'Ne manquez pas nos événements et activités à venir'}
+            </p>
+          </div>
+
+          {/* Events Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {eventsToDisplay.map((event) => (
+              <article
+                key={event.id}
+                onClick={() => navigate(`/events/${event.id}`)}
+                className="group bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer hover:-translate-y-2"
+              >
+                {/* Image or Icon */}
+                {event.imageUrl ? (
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={event.imageUrl} 
+                      alt={event[isArabic ? 'titleAr' : 'titleFr']}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-48 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                    <CalendarDaysIcon className="w-20 h-20 text-white opacity-50" />
+                  </div>
+                )}
+
+                <div className="p-6">
+                  {/* Featured Badge */}
+                  {event.featured && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                        ⭐ {isArabic ? 'مميز' : 'À la une'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Title */}
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {event[isArabic ? 'titleAr' : 'titleFr']}
+                  </h3>
+
+                  {/* Description Preview */}
+                  <p className="text-gray-600 dark:text-gray-400 line-clamp-2 mb-4">
+                    {event[isArabic ? 'descriptionAr' : 'descriptionFr']}
+                  </p>
+
+                  {/* Event Details */}
+                  <div className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <CalendarDaysIcon className="w-4 h-4" />
+                      <span>{isArabic ? event.dateAr : event.dateFr}</span>
+                    </div>
+                    {event.locationFr && (
+                      <div className="flex items-center gap-2">
+                        <MapPinIcon className="w-4 h-4" />
+                        <span className="line-clamp-1">{isArabic ? event.locationAr : event.locationFr}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {/* View All Button */}
+          <div className="text-center">
+            <button
+              onClick={() => navigate('/events')}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all hover:scale-105 shadow-lg"
+            >
+              {isArabic ? 'عرض جميع الأحداث' : 'Voir tous les événements'}
               <ArrowUpRightIcon className="w-5 h-5" />
             </button>
           </div>
@@ -1191,153 +1393,7 @@ export default function LandingPage() {
   };
 
   // ==================== SECTION 11: CONTACT ====================
-  const ContactSection = () => {
-    const contact = dynamicContactInfo || {
-      phone: '+212 5XX-XXXXXX',
-      email: 'contact@lycee-excellence.ma',
-      addressFr: 'Adresse du Lycée',
-      addressAr: 'عنوان الثانوية',
-      hoursFr: 'Lun-Ven: 8h-17h',
-      hoursAr: 'الاثنين-الجمعة: 8 صباحاً - 5 مساءً',
-    };
-
-    return (
-      <section id="contact" className="py-24 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <PhoneIcon className="w-5 h-5" />
-              {isArabic ? 'اتصل بنا' : 'Contact'}
-            </div>
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t.contactTitle}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t.contactSubtitle}
-            </p>
-          </div>
-
-          {/* Contact Grid */}
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Contact Cards */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Phone */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-                <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-4">
-                  <PhoneIcon className="w-7 h-7" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                  {isArabic ? 'الهاتف' : 'Téléphone'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {contact.phone}
-                </p>
-              </div>
-
-              {/* Email */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-                <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-xl flex items-center justify-center mb-4">
-                  <EnvelopeIcon className="w-7 h-7" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                  {isArabic ? 'البريد الإلكتروني' : 'Email'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 break-all">
-                  {contact.email}
-                </p>
-              </div>
-
-              {/* Address */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-                <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center mb-4">
-                  <MapPinIcon className="w-7 h-7" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                  {isArabic ? 'العنوان' : 'Adresse'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {contact[isArabic ? 'addressAr' : 'addressFr']}
-                </p>
-              </div>
-
-              {/* Hours */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
-                <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center mb-4">
-                  <ClockIcon className="w-7 h-7" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                  {isArabic ? 'ساعات العمل' : 'Horaires'}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  {contact[isArabic ? 'hoursAr' : 'hoursFr']}
-                </p>
-              </div>
-            </div>
-
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                  {t.contactForm}
-                </h3>
-                <form className="space-y-6">
-                  <div className="grid sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {isArabic ? 'الاسم' : 'Nom'}
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder={isArabic ? 'اسمك' : 'Votre nom'}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {isArabic ? 'البريد الإلكتروني' : 'Email'}
-                      </label>
-                      <input
-                        type="email"
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder={isArabic ? 'بريدك الإلكتروني' : 'Votre email'}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {isArabic ? 'الموضوع' : 'Sujet'}
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                      placeholder={isArabic ? 'موضوع الرسالة' : 'Sujet du message'}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      {isArabic ? 'الرسالة' : 'Message'}
-                    </label>
-                    <textarea
-                      rows={6}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                      placeholder={isArabic ? 'رسالتك هنا...' : 'Votre message...'}
-                    ></textarea>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-all hover:scale-[1.02] shadow-lg"
-                  >
-                    {isArabic ? 'إرسال الرسالة' : 'Envoyer le Message'}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  };
+  // ContactSection is now imported from separate file to prevent re-renders
 
   // ==================== SECTION 12: FOOTER ====================
   const Footer = () => {
@@ -1559,14 +1615,18 @@ export default function LandingPage() {
     switch (sectionId) {
       case 'hero':
         return <HeroSection key="hero" />;
-      case 'announcements':
-        return <UrgentAnnouncementsBar key="announcements" />;
+      case 'news-ticker':  // Barre défilante des actualités (scrolling news bar)
+        return <NewsTickerBar key="news-ticker" />;
       case 'stats':
         return <StatisticsSection key="stats" />;
       case 'about':
         return <AboutSection key="about" />;
       case 'news':
         return <NewsSection key="news" />;
+      case 'announcements':  // Section des annonces (announcements section)
+        return <AnnouncementsSection key="announcements" />;
+      case 'events':  // Section des événements (events section)
+        return <EventsSection key="events" />;
       case 'clubs':
         return <ClubsSection key="clubs" />;
       case 'gallery':
@@ -1576,7 +1636,7 @@ export default function LandingPage() {
       case 'quicklinks':
         return <QuickLinksSection key="quicklinks" />;
       case 'contact':
-        return <ContactSection key="contact" />;
+        return <ContactSection key="contact" contactInfo={dynamicContactInfo} isArabic={isArabic} translations={t} />;
       default:
         return null;
     }

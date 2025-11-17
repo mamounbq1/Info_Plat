@@ -3,6 +3,8 @@ import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc 
 import { db } from '../../config/firebase';
 import { PlusIcon, TrashIcon, PencilIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { uploadImage } from '../../utils/fileUpload';
+import ImageUploadField from '../ImageUploadField';
 
 /**
  * EventsManager - Gestionnaire CRUD pour les événements
@@ -14,6 +16,7 @@ import toast from 'react-hot-toast';
 export default function EventsManager({ isArabic }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
@@ -392,18 +395,28 @@ export default function EventsManager({ isArabic }) {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {isArabic ? 'رابط الصورة (اختياري)' : 'URL de l\'image (optionnel)'}
-                </label>
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://..."
-                />
-              </div>
+              <ImageUploadField
+                label={isArabic ? 'صورة الغلاف (اختياري)' : 'Image de couverture (optionnel)'}
+                value={formData.imageUrl}
+                onChange={async (file) => {
+                  if (file) {
+                    setUploadingImage(true);
+                    try {
+                      const url = await uploadImage(file, 'events', formData.imageUrl);
+                      setFormData({ ...formData, imageUrl: url });
+                      toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+                    } catch (error) {
+                      console.error('Error uploading event image:', error);
+                      toast.error(isArabic ? 'فشل رفع الصورة' : 'Échec du téléchargement');
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }
+                }}
+                folder="events"
+                disabled={uploadingImage}
+                required={false}
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

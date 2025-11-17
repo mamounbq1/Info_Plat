@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import SharedLayout from '../components/SharedLayout';
 import { useLanguage } from '../contexts/LanguageContext';
-import { CalendarIcon, MapPinIcon, ClockIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, MapPinIcon, ClockIcon, MagnifyingGlassIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export default function EventsPage() {
+  const navigate = useNavigate();
   const { isArabic } = useLanguage();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -208,35 +209,52 @@ export default function EventsPage() {
                 {currentEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300"
+                    onClick={() => navigate(`/events/${event.id}`)}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group"
                   >
                     <div className="md:flex">
-                      {/* Date Badge */}
-                      <div className="md:w-32 bg-gradient-to-br from-blue-600 to-violet-600 flex flex-col items-center justify-center p-6 text-white">
-                        <CalendarIcon className="w-12 h-12 mb-2" />
-                        <div className="text-sm text-center">
-                          {isArabic ? event.dateAr : event.dateFr}
+                      {/* Image or Date Badge */}
+                      {event.imageUrl ? (
+                        <div className="md:w-64 h-48 md:h-auto">
+                          <img 
+                            src={event.imageUrl}
+                            alt={isArabic ? event.titleAr : event.titleFr}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      </div>
+                      ) : (
+                        <div className="md:w-32 bg-gradient-to-br from-blue-600 to-violet-600 flex flex-col items-center justify-center p-6 text-white">
+                          <CalendarIcon className="w-12 h-12 mb-2" />
+                          <div className="text-sm text-center">
+                            {isArabic ? event.dateAr : event.dateFr}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Event Details */}
                       <div className="flex-1 p-6">
                         <div className="flex items-start justify-between mb-3">
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             {isArabic ? event.titleAr : event.titleFr}
                           </h3>
                           {event.featured && (
-                            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
+                            <div className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
+                              <SparklesIcon className="w-4 h-4" />
                               {isArabic ? 'مميز' : 'À la une'}
-                            </span>
+                            </div>
                           )}
                         </div>
                         
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
                           {isArabic ? event.descriptionAr : event.descriptionFr}
                         </p>
 
                         <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center gap-2">
+                            <CalendarIcon className="w-5 h-5" />
+                            <span>{isArabic ? event.dateAr : event.dateFr}</span>
+                          </div>
+                          
                           <div className="flex items-center gap-2">
                             <ClockIcon className="w-5 h-5" />
                             <span>{isArabic ? event.timeAr : event.timeFr}</span>
@@ -248,12 +266,11 @@ export default function EventsPage() {
                           </div>
                         </div>
 
-                        <Link 
-                          to="/contact"
+                        <button
                           className="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                          {isArabic ? 'التسجيل' : 'S\'inscrire'}
-                        </Link>
+                          {isArabic ? 'التفاصيل' : 'Voir les détails'}
+                        </button>
                       </div>
                     </div>
                   </div>

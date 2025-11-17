@@ -9,6 +9,8 @@ import {
   PhotoIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { uploadImage } from '../utils/fileUpload';
+import ImageUploadField from './ImageUploadField';
 
 /**
  * SiteSettingsManager - Component for managing site-wide settings
@@ -23,6 +25,7 @@ export default function SiteSettingsManager() {
   const { settings: initialSettings, loading: loadingSettings, updateSettings } = useSiteSettings();
   const [formData, setFormData] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Update form when settings are loaded
   useEffect(() => {
@@ -125,17 +128,29 @@ export default function SiteSettingsManager() {
               {isArabic ? 'شعار المدرسة' : 'Logo de l\'École'}
             </h3>
             
+            <ImageUploadField
+              label={isArabic ? 'شعار المدرسة' : 'Logo de l\'école'}
+              value={formData.logoUrl}
+              onChange={async (file) => {
+                if (file) {
+                  setUploadingLogo(true);
+                  try {
+                    const url = await uploadImage(file, 'site-settings', formData.logoUrl);
+                    setFormData({ ...formData, logoUrl: url });
+                    toast.success(isArabic ? 'تم رفع الشعار بنجاح' : 'Logo téléchargé avec succès');
+                  } catch (error) {
+                    console.error('Error uploading logo:', error);
+                    toast.error(isArabic ? 'فشل رفع الشعار' : 'Échec du téléchargement');
+                  } finally {
+                    setUploadingLogo(false);
+                  }
+                }
+              }}
+              folder="site-settings"
+              disabled={uploadingLogo}
+              required={false}
+            />
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {isArabic ? 'رابط الشعار (URL)' : 'URL du Logo'}
-              </label>
-              <input
-                type="url"
-                value={formData.logoUrl}
-                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-                placeholder="https://example.com/logo.png"
-              />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {isArabic 
                   ? 'اتركه فارغًا لاستخدام الأيقونة الافتراضية'

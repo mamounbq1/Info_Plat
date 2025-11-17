@@ -210,11 +210,10 @@ export default function NewsPage() {
                   >
                     {/* Image */}
                     <div className="relative h-48 bg-gradient-to-br from-blue-500 to-violet-600 overflow-hidden">
-                      {article.image ? (
+                      {article.imageUrl ? (
                         <img
-                          src={article.image}
+                          src={article.imageUrl}
                           alt={isArabic ? article.titleAr : article.titleFr}
-                          crossOrigin="anonymous"
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           onError={(e) => e.target.style.display = 'none'}
                         />

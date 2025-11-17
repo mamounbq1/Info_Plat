@@ -3,6 +3,8 @@ import { collection, query, where, onSnapshot, orderBy, limit, updateDoc, doc, a
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
+import { sendApprovalEmail, isEmailConfigured } from '../services/emailService';
+import { useLanguage } from './LanguageContext';
 
 const NotificationContext = createContext();
 
@@ -12,6 +14,7 @@ export function useNotifications() {
 
 export function NotificationProvider({ children }) {
   const { currentUser, isAdmin, userProfile } = useAuth();
+  const { isArabic } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -179,22 +182,53 @@ export function NotificationProvider({ children }) {
   };
 
   // Approve user registration
-  const approveUser = async (userId, userName) => {
+  const approveUser = async (userId, userName, userEmail) => {
     try {
+      console.log('📧 [NotificationBar Approval] Starting approval for:', userId, userName, userEmail);
+      
+      // Update user status in Firestore
       await updateDoc(doc(db, 'users', userId), {
         approved: true,
         status: 'active',
         approvedAt: new Date().toISOString()
       });
+      console.log('✅ [NotificationBar Approval] User status updated in Firestore');
       
-      toast.success(`✅ ${userName} approuvé avec succès`);
+      // Send approval email if configured
+      if (userEmail && isEmailConfigured()) {
+        console.log('📧 [NotificationBar Approval] Sending email to:', userEmail);
+        const emailResult = await sendApprovalEmail({
+          toEmail: userEmail,
+          toName: userName || userEmail,
+          language: isArabic ? 'ar' : 'fr'
+        });
+        console.log('📧 [NotificationBar Approval] Email result:', emailResult);
+
+        if (emailResult.success) {
+          toast.success(
+            isArabic 
+              ? `✅ ${userName} تمت الموافقة وإرسال إشعار بالبريد` 
+              : `✅ ${userName} approuvé et notifié par email`
+          );
+        } else {
+          console.error('❌ [NotificationBar Approval] Email failed:', emailResult.message, emailResult.error);
+          toast.success(
+            isArabic 
+              ? `✅ ${userName} تمت الموافقة (فشل إرسال البريد)` 
+              : `✅ ${userName} approuvé (email non envoyé)`
+          );
+        }
+      } else {
+        console.warn('⚠️ [NotificationBar Approval] Email not sent - Email:', !!userEmail, 'Configured:', isEmailConfigured());
+        toast.success(`✅ ${userName} approuvé avec succès`);
+      }
       
       // Remove notification
       setNotifications(prev => prev.filter(n => n.userId !== userId));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error approving user:', error);
-      toast.error('Erreur lors de l\'approbation');
+      console.error('❌ [NotificationBar Approval] Error approving user:', error);
+      toast.error(isArabic ? 'خطأ في الموافقة' : 'Erreur lors de l\'approbation');
     }
   };
 
