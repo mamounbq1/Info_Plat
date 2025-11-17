@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import Sidebar from '../components/Sidebar';
 import Pagination from '../components/Pagination';
+import ImageUploadField from '../components/ImageUploadField';
+import { uploadImage, uploadFile } from '../utils/fileUpload';
 import {
   PlusIcon,
   TrashIcon,
@@ -47,6 +49,9 @@ export default function AdminCourses() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [deletingCourse, setDeletingCourse] = useState(null);
+  
+  // Upload state
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -403,7 +408,9 @@ function CourseEditModal({ course, onSave, onCancel, subjects, classes, isArabic
   });
 
   const [newTag, setNewTag] = useState('');
-  const [newFileUrl, setNewFileUrl] = useState('');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useState(null);
 
   const handleAddTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
@@ -416,10 +423,29 @@ function CourseEditModal({ course, onSave, onCancel, subjects, classes, isArabic
     setFormData({ ...formData, tags: formData.tags.filter(tag => tag !== tagToRemove) });
   };
 
-  const handleAddFile = () => {
-    if (newFileUrl.trim() && !formData.files.includes(newFileUrl.trim())) {
-      setFormData({ ...formData, files: [...formData.files, newFileUrl.trim()] });
-      setNewFileUrl('');
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const url = await uploadFile(file, 'course-materials');
+      setFormData({ 
+        ...formData, 
+        files: [...formData.files, url] 
+      });
+      toast.success(isArabic ? 'تم رفع الملف بنجاح' : 'Fichier téléchargé avec succès');
+      e.target.value = ''; // Reset input
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      const errorMsg = error.message || 'Unknown error';
+      if (errorMsg.includes('too large')) {
+        toast.error(isArabic ? 'الملف كبير جدًا (الحد الأقصى 20 ميجابايت)' : 'Fichier trop volumineux (max 20MB)');
+      } else {
+        toast.error(isArabic ? 'فشل رفع الملف' : 'Échec du téléchargement');
+      }
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -557,16 +583,35 @@ function CourseEditModal({ course, onSave, onCancel, subjects, classes, isArabic
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {isArabic ? 'صورة الغلاف' : 'Image de couverture'}
-                </label>
-                <input
-                  type="url"
+                <ImageUploadField
+                  label={isArabic ? 'صورة الغلاف' : 'Image de couverture'}
                   value={formData.thumbnail}
-                  onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                  placeholder="URL"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  onChange={async (file) => {
+                    if (file) {
+                      setUploadingThumbnail(true);
+                      try {
+                        const url = await uploadImage(file, 'courses', formData.thumbnail);
+                        setFormData({ ...formData, thumbnail: url });
+                        toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+                      } catch (error) {
+                        console.error('Error uploading thumbnail:', error);
+                        toast.error(isArabic ? 'فشل رفع الصورة' : 'Échec du téléchargement de l\'image');
+                      } finally {
+                        setUploadingThumbnail(false);
+                      }
+                    } else {
+                      setFormData({ ...formData, thumbnail: '' });
+                    }
+                  }}
+                  folder="courses"
+                  disabled={uploadingThumbnail}
+                  required
                 />
+                {uploadingThumbnail && (
+                  <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                    {isArabic ? 'جاري رفع الصورة...' : 'Téléchargement en cours...'}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -589,43 +634,127 @@ function CourseEditModal({ course, onSave, onCancel, subjects, classes, isArabic
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 <DocumentIcon className="w-4 h-4 inline mr-1" />
-                {isArabic ? 'الملفات' : 'Fichiers'}
+                {isArabic ? 'الملفات' : 'Fichiers'} 
+                {formData.files.length > 0 && (
+                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    ({formData.files.length})
+                  </span>
+                )}
               </label>
-              <div className="flex gap-2 mb-2">
+              <div className="mb-3">
                 <input
-                  type="url"
-                  value={newFileUrl}
-                  onChange={(e) => setNewFileUrl(e.target.value)}
-                  placeholder={isArabic ? 'رابط الملف' : 'URL du fichier'}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploadingFile}
+                  className="hidden"
+                  id="file-upload-input"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddFile}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                <label
+                  htmlFor="file-upload-input"
+                  className={`
+                    flex items-center justify-center gap-2 px-6 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-all
+                    ${uploadingFile 
+                      ? 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 cursor-not-allowed' 
+                      : 'border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                    }
+                  `}
                 >
-                  {isArabic ? 'إضافة' : 'Ajouter'}
-                </button>
+                  {uploadingFile ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        {isArabic ? 'جاري الرفع...' : 'Téléchargement...'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <PlusIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">
+                        {isArabic ? 'انقر لإضافة ملف' : 'Cliquer pour ajouter un fichier'}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        (PDF, DOC, XLS, PPT, ZIP, etc.)
+                      </span>
+                    </>
+                  )}
+                </label>
               </div>
               {formData.files.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800/50">
                   {formData.files.map((file, index) => {
                     // Handle both string URLs and file objects
-                    const displayText = typeof file === 'string' ? file : (file?.url || file?.name || JSON.stringify(file));
+                    const fileUrl = typeof file === 'string' ? file : (file?.url || file?.name || '');
+                    const fileName = fileUrl.split('/').pop().split('?')[0] || fileUrl;
+                    const fileExtension = fileName.split('.').pop().toUpperCase();
+                    
+                    // Determine file icon color based on extension
+                    const getFileColor = (ext) => {
+                      if (['PDF'].includes(ext)) return 'text-red-600';
+                      if (['DOC', 'DOCX'].includes(ext)) return 'text-blue-600';
+                      if (['XLS', 'XLSX'].includes(ext)) return 'text-green-600';
+                      if (['PPT', 'PPTX'].includes(ext)) return 'text-orange-600';
+                      if (['ZIP', 'RAR'].includes(ext)) return 'text-purple-600';
+                      return 'text-gray-600';
+                    };
+
                     return (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                        <DocumentIcon className="w-4 h-4 text-gray-500" />
-                        <span className="flex-1 text-sm truncate">{displayText}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(file)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
+                      <div 
+                        key={index} 
+                        className="group flex items-center gap-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all hover:shadow-md"
+                      >
+                        {/* File Icon */}
+                        <div className={`flex-shrink-0 ${getFileColor(fileExtension)}`}>
+                          <DocumentIcon className="w-6 h-6" />
+                        </div>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {fileName}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {fileExtension} • {isArabic ? 'ملف' : 'Fichier'}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* View Button */}
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title={isArabic ? 'عرض الملف' : 'Voir le fichier'}
+                          >
+                            <EyeIcon className="w-5 h-5" />
+                          </a>
+
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(file)}
+                            className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title={isArabic ? 'حذف الملف' : 'Supprimer'}
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
+                </div>
+              )}
+              {formData.files.length === 0 && (
+                <div className="text-center py-8 px-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  <DocumentIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {isArabic ? 'لم يتم إضافة ملفات بعد' : 'Aucun fichier ajouté'}
+                  </p>
                 </div>
               )}
             </div>

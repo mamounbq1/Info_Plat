@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Variables Check</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 20px; }
+        .var-name {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Environment Variables Diagnostic</h1>
+        <p>This page checks if Vite environment variables are properly loaded in the build.</p>
+    </div>
+
+    <div class="card">
+        <h2>📧 EmailJS Configuration</h2>
+        <div id="emailjs-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>🔥 Firebase Configuration</h2>
+        <div id="firebase-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Overall Status</h2>
+        <div id="overall-status"></div>
+    </div>
+
+    <script type="module">
+        // This script runs in the browser with access to import.meta.env
+        
+        function checkVar(name, value) {
+            const hasValue = value && value !== 'undefined' && value !== '';
+            return {
+                name,
+                hasValue,
+                value: hasValue ? (value.substring(0, 10) + '...') : 'NOT SET'
+            };
+        }
+
+        // Check EmailJS variables
+        const emailjsVars = [
+            checkVar('VITE_EMAILJS_PUBLIC_KEY', import.meta.env.VITE_EMAILJS_PUBLIC_KEY),
+            checkVar('VITE_EMAILJS_SERVICE_ID', import.meta.env.VITE_EMAILJS_SERVICE_ID),
+            checkVar('VITE_EMAILJS_TEMPLATE_ID', import.meta.env.VITE_EMAILJS_TEMPLATE_ID),
+            checkVar('VITE_EMAILJS_CONTACT_REPLY_TEMPLATE_ID', import.meta.env.VITE_EMAILJS_CONTACT_REPLY_TEMPLATE_ID)
+        ];
+
+        // Check Firebase variables
+        const firebaseVars = [
+            checkVar('VITE_FIREBASE_API_KEY', import.meta.env.VITE_FIREBASE_API_KEY),
+            checkVar('VITE_FIREBASE_AUTH_DOMAIN', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+            checkVar('VITE_FIREBASE_PROJECT_ID', import.meta.env.VITE_FIREBASE_PROJECT_ID),
+            checkVar('VITE_FIREBASE_STORAGE_BUCKET', import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+            checkVar('VITE_FIREBASE_MESSAGING_SENDER_ID', import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+            checkVar('VITE_FIREBASE_APP_ID', import.meta.env.VITE_FIREBASE_APP_ID)
+        ];
+
+        // Display EmailJS status
+        const emailjsHtml = emailjsVars.map(v => 
+            `<div>
+                <span class="var-name">${v.name}</span>
+                <span class="status ${v.hasValue ? 'success' : 'error'}">
+                    ${v.hasValue ? '✅ ' + v.value : '❌ NOT SET'}
+                </span>
+            </div>`
+        ).join('');
+        document.getElementById('emailjs-status').innerHTML = emailjsHtml;
+
+        // Display Firebase status
+        const firebaseHtml = firebaseVars.map(v => 
+            `<div>
+                <span class="var-name">${v.name}</span>
+                <span class="status ${v.hasValue ? 'success' : 'error'}">
+                    ${v.hasValue ? '✅ ' + v.value : '❌ NOT SET'}
+                </span>
+            </div>`
+        ).join('');
+        document.getElementById('firebase-status').innerHTML = firebaseHtml;
+
+        // Overall status
+        const allVars = [...emailjsVars, ...firebaseVars];
+        const allSet = allVars.every(v => v.hasValue);
+        const someSet = allVars.some(v => v.hasValue);
+        
+        let statusMessage = '';
+        if (allSet) {
+            statusMessage = '<h3 style="color: #155724;">✅ All environment variables are properly configured!</h3><p>EmailJS and Firebase should work correctly.</p>';
+        } else if (someSet) {
+            statusMessage = '<h3 style="color: #856404;">⚠️ Some environment variables are missing!</h3><p>This may cause features to malfunction.</p>';
+        } else {
+            statusMessage = '<h3 style="color: #721c24;">❌ No environment variables detected!</h3><p>Vercel did not load the environment variables during build.</p><p><strong>Solution:</strong> Ensure environment variables are set for the correct environment (Production/Preview/Development) and redeploy.</p>';
+        }
+        
+        document.getElementById('overall-status').innerHTML = statusMessage;
+
+        // Log to console as well
+        console.log('📧 EmailJS Variables:', emailjsVars);
+        console.log('🔥 Firebase Variables:', firebaseVars);
+        console.log('✅ All set?', allSet);
+    </script>
+</body>
+</html>

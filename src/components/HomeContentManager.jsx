@@ -3,6 +3,8 @@ import { collection, doc, getDoc, setDoc, addDoc, getDocs, deleteDoc, query, ord
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { uploadImage } from '../utils/fileUpload';
+import ImageUploadField from './ImageUploadField';
 import { 
   PlusIcon, 
   TrashIcon, 
@@ -69,6 +71,7 @@ export default function HomeContentManager() {
   // Image upload states
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingTestimonialAvatar, setUploadingTestimonialAvatar] = useState(false);
 
   // Features State
   const [features, setFeatures] = useState([]);
@@ -1325,6 +1328,8 @@ function FeatureModal({ featureForm, setFeatureForm, handleSaveFeature, setShowF
 
 // News Modal Component
 function NewsModal({ newsForm, setNewsForm, handleSaveNews, setShowNewsModal, editingNews, loading, isArabic }) {
+  const [uploadingNewsImage, setUploadingNewsImage] = useState(false);
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
@@ -1422,18 +1427,28 @@ function NewsModal({ newsForm, setNewsForm, handleSaveNews, setShowNewsModal, ed
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'رابط الصورة (اختياري)' : 'URL de l\'image (optionnel)'}
-            </label>
-            <input
-              type="url"
-              value={newsForm.imageUrl}
-              onChange={(e) => setNewsForm({ ...newsForm, imageUrl: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              placeholder="https://..."
-            />
-          </div>
+          <ImageUploadField
+            label={isArabic ? 'صورة المقال (اختياري)' : 'Image de l\'article (optionnel)'}
+            value={newsForm.imageUrl}
+            onChange={async (file) => {
+              if (file) {
+                setUploadingNewsImage(true);
+                try {
+                  const url = await uploadImage(file, 'news', newsForm.imageUrl);
+                  setNewsForm({ ...newsForm, imageUrl: url });
+                  toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+                } catch (error) {
+                  console.error('Error uploading news image:', error);
+                  toast.error(isArabic ? 'فشل رفع الصورة' : 'Échec du téléchargement');
+                } finally {
+                  setUploadingNewsImage(false);
+                }
+              }
+            }}
+            folder="news"
+            disabled={uploadingNewsImage}
+            required={false}
+          />
 
           <div className="flex items-center gap-3">
             <input
@@ -1569,15 +1584,27 @@ function TestimonialModal({ testimonialForm, setTestimonialForm, handleSaveTesti
 
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {isArabic ? 'رابط الصورة الشخصية' : 'URL Avatar'}
-              </label>
-              <input
-                type="url"
+              <ImageUploadField
+                label={isArabic ? 'الصورة الشخصية' : 'Avatar'}
                 value={testimonialForm.avatarUrl}
-                onChange={(e) => setTestimonialForm({ ...testimonialForm, avatarUrl: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-                placeholder="https://..."
+                onChange={async (file) => {
+                  if (file) {
+                    setUploadingTestimonialAvatar(true);
+                    try {
+                      const url = await uploadImage(file, 'testimonials', testimonialForm.avatarUrl);
+                      setTestimonialForm({ ...testimonialForm, avatarUrl: url });
+                      toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+                    } catch (error) {
+                      console.error('Error uploading avatar:', error);
+                      toast.error(isArabic ? 'فشل رفع الصورة' : 'Échec du téléchargement');
+                    } finally {
+                      setUploadingTestimonialAvatar(false);
+                    }
+                  }
+                }}
+                folder="testimonials"
+                disabled={uploadingTestimonialAvatar}
+                required={false}
               />
             </div>
             <div>

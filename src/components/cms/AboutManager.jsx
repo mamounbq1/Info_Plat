@@ -18,9 +18,12 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { uploadImage } from '../../utils/fileUpload';
+import ImageUploadField from '../ImageUploadField';
 
 export default function AboutManager({ isArabic }) {
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [aboutContent, setAboutContent] = useState({
     titleFr: '',
     titleAr: '',
@@ -216,15 +219,27 @@ export default function AboutManager({ isArabic }) {
         {/* Image URL & Years */}
         <div className="grid md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {isArabic ? 'رابط الصورة' : 'URL de l\'Image'}
-            </label>
-            <input
-              type="url"
+            <ImageUploadField
+              label={isArabic ? 'صورة القسم' : 'Image de la section'}
               value={aboutContent.imageUrl}
-              onChange={(e) => setAboutContent({ ...aboutContent, imageUrl: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-              placeholder="https://..."
+              onChange={async (file) => {
+                if (file) {
+                  setUploadingImage(true);
+                  try {
+                    const url = await uploadImage(file, 'about', aboutContent.imageUrl);
+                    setAboutContent({ ...aboutContent, imageUrl: url });
+                    toast.success(isArabic ? 'تم رفع الصورة بنجاح' : 'Image téléchargée avec succès');
+                  } catch (error) {
+                    console.error('Error uploading about image:', error);
+                    toast.error(isArabic ? 'فشل رفع الصورة' : 'Échec du téléchargement');
+                  } finally {
+                    setUploadingImage(false);
+                  }
+                }
+              }}
+              folder="about"
+              disabled={uploadingImage}
+              required={false}
             />
           </div>
           <div>

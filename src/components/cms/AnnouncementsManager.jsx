@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { PlusIcon, TrashIcon, PencilIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '../../config/firebase';
+import { PlusIcon, TrashIcon, PencilIcon, MegaphoneIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 /**
@@ -19,12 +20,18 @@ export default function AnnouncementsManager({ isArabic }) {
   const [formData, setFormData] = useState({
     titleFr: '',
     titleAr: '',
+    contentFr: '',
+    contentAr: '',
     dateFr: '',
     dateAr: '',
+    imageUrl: '',
     urgent: false,
     enabled: true,
     order: 0
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     fetchAnnouncements();
@@ -49,15 +56,33 @@ export default function AnnouncementsManager({ isArabic }) {
     e.preventDefault();
     try {
       setLoading(true);
+      
+      let finalImageUrl = formData.imageUrl;
+      
+      // Upload new image if selected
+      if (imageFile) {
+        setUploadingImage(true);
+        const timestamp = Date.now();
+        const storageRef = ref(storage, `announcements/${timestamp}_${imageFile.name}`);
+        await uploadBytes(storageRef, imageFile);
+        finalImageUrl = await getDownloadURL(storageRef);
+        setUploadingImage(false);
+      }
+      
+      const dataToSave = {
+        ...formData,
+        imageUrl: finalImageUrl
+      };
+      
       if (editingItem) {
         await updateDoc(doc(db, 'homepage-announcements', editingItem.id), {
-          ...formData,
+          ...dataToSave,
           updatedAt: new Date().toISOString()
         });
         toast.success(isArabic ? 'تم تحديث الإعلان' : 'Annonce mise à jour');
       } else {
         await addDoc(collection(db, 'homepage-announcements'), {
-          ...formData,
+          ...dataToSave,
           createdAt: new Date().toISOString()
         });
         toast.success(isArabic ? 'تم إضافة الإعلان' : 'Annonce ajoutée');
@@ -71,6 +96,7 @@ export default function AnnouncementsManager({ isArabic }) {
       toast.error(isArabic ? 'خطأ في الحفظ' : 'Erreur de sauvegarde');
     } finally {
       setLoading(false);
+      setUploadingImage(false);
     }
   };
 
@@ -91,18 +117,46 @@ export default function AnnouncementsManager({ isArabic }) {
     setFormData({
       titleFr: '',
       titleAr: '',
+      contentFr: '',
+      contentAr: '',
       dateFr: '',
       dateAr: '',
+      imageUrl: '',
       urgent: false,
       enabled: true,
       order: 0
     });
+    setImageFile(null);
+    setImagePreview('');
   };
 
   const openEditModal = (item) => {
     setEditingItem(item);
     setFormData(item);
+    setImagePreview(item.imageUrl || '');
     setShowModal(true);
+  };
+  
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(isArabic ? 'حجم الصورة كبير جداً (أقصى 5MB)' : 'Image trop grande (max 5MB)');
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData({ ...formData, imageUrl: '' });
   };
 
   const openAddModal = () => {
@@ -253,6 +307,37 @@ export default function AnnouncementsManager({ isArabic }) {
                 </div>
               </div>
 
+              {/* Content Text Areas */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {isArabic ? 'المحتوى التفصيلي (فرنسي)' : 'Contenu Détaillé (Français)'}
+                  </label>
+                  <textarea
+                    value={formData.contentFr}
+                    onChange={(e) => setFormData({ ...formData, contentFr: e.target.value })}
+                    required
+                    rows="5"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Décrivez l'annonce en détail..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {isArabic ? 'المحتوى التفصيلي (عربي)' : 'Contenu Détaillé (Arabe)'}
+                  </label>
+                  <textarea
+                    value={formData.contentAr}
+                    onChange={(e) => setFormData({ ...formData, contentAr: e.target.value })}
+                    required
+                    rows="5"
+                    dir="rtl"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="صف الإعلان بالتفصيل..."
+                  />
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -281,6 +366,48 @@ export default function AnnouncementsManager({ isArabic }) {
                     placeholder="مثال: 10 شتنبر"
                   />
                 </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {isArabic ? 'صورة توضيحية (اختياري)' : 'Image Illustrative (Facultatif)'}
+                </label>
+                
+                {imagePreview || formData.imageUrl ? (
+                  <div className="relative">
+                    <img 
+                      src={imagePreview || formData.imageUrl} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                    <PhotoIcon className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                    <label className="cursor-pointer">
+                      <span className="text-blue-600 hover:text-blue-700 font-medium">
+                        {isArabic ? 'اختر صورة' : 'Choisir une image'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      {isArabic ? 'PNG, JPG, GIF (أقصى 5MB)' : 'PNG, JPG, GIF (max 5MB)'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

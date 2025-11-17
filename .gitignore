@@ -37,6 +37,19 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Firebase Service Account (SENSITIVE - Never commit!)
+serviceAccountKey.json
+**/serviceAccountKey*.json
+functions/serviceAccountKey.json
+
+# Backup files
+*.backup
+storage.rules.backup
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Core dumps
+core
+core.*

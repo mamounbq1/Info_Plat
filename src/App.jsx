@@ -6,6 +6,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import FirebaseSetupPrompt from './components/FirebaseSetupPrompt';
+import AnalyticsTracker from './components/AnalyticsTracker';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -26,6 +27,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import CourseView from './pages/CourseView';
 import QuizTaking from './pages/QuizTaking';
 import QuizResults from './pages/QuizResults';
+import ExerciseTaking from './pages/ExerciseTaking';
 import Settings from './pages/Settings';
 import MyCourses from './pages/MyCourses';
 import AchievementsPage from './pages/AchievementsPage';
@@ -38,17 +40,20 @@ import VerifyStudentsClasses from './pages/VerifyStudentsClasses';
 import FixClassesLevelBranch from './pages/FixClassesLevelBranch';
 import DiagnoseClassesStructure from './pages/DiagnoseClassesStructure';
 import FixExistingStudents from './pages/FixExistingStudents';
+import DiagnosticUser from './pages/DiagnosticUser';
 
 // Public Pages
 import AboutPage from './pages/AboutPage';
 import NewsPage from './pages/NewsPage';
 import NewsDetailPage from './pages/NewsDetailPage';
+import AnnouncementsPage from './pages/AnnouncementsPage';
+import AnnouncementDetailPage from './pages/AnnouncementDetailPage';
+import EventsPage from './pages/EventsPage';
+import EventDetailPage from './pages/EventDetailPage';
 import GalleryPage from './pages/GalleryPage';
 import ClubsPage from './pages/ClubsPage';
 import ClubDetailPage from './pages/ClubDetailPage';
 import ContactPage from './pages/ContactPage';
-import AnnouncementsPage from './pages/AnnouncementsPage';
-import EventsPage from './pages/EventsPage';
 import TeachersPage from './pages/TeachersPage';
 
 // New Public Pages
@@ -154,6 +159,7 @@ function App() {
         <LanguageProvider>
           <AuthProvider>
             <NotificationProvider>
+            <AnalyticsTracker />
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 transition-all duration-200">
             <Toaster 
               position="top-center"
@@ -190,6 +196,10 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/news" element={<NewsPage />} />
               <Route path="/news/:id" element={<NewsDetailPage />} />
+              <Route path="/announcements" element={<AnnouncementsPage />} />
+              <Route path="/announcements/:id" element={<AnnouncementDetailPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/clubs" element={<ClubsPage />} />
               <Route path="/clubs/:id" element={<ClubDetailPage />} />
@@ -275,6 +285,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <QuizTaking />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/exercise/:exerciseId" 
+                element={
+                  <ProtectedRoute>
+                    <ExerciseTaking />
                   </ProtectedRoute>
                 } 
               />
@@ -383,6 +402,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DiagnoseClassesStructure />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/diagnostic-user" 
+                element={
+                  <ProtectedRoute>
+                    <DiagnosticUser />
                   </ProtectedRoute>
                 } 
               />

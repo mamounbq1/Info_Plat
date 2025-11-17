@@ -10,7 +10,7 @@ import {
   MapPinIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import toast from 'react-hot-toast';
 
@@ -64,11 +64,39 @@ export default function ClubDetailPage() {
     return gradients[color] || gradients.blue;
   };
 
-  const handleJoinSubmit = (e) => {
+  const handleJoinSubmit = async (e) => {
     e.preventDefault();
-    // In a real application, this would send data to Firestore
-    toast.success(isArabic ? 'تم إرسال طلبك بنجاح!' : 'Votre demande a été envoyée avec succès!');
-    setJoinFormData({ name: '', email: '', phone: '', grade: '', message: '' });
+    
+    try {
+      // Save club join request to Firestore 'messages' collection
+      // This will appear in MessagesManager alongside contact messages
+      const messageData = {
+        type: 'club_request', // Identify as club join request
+        clubId: club.id,
+        clubName: isArabic ? club.nameAr : club.nameFr,
+        name: joinFormData.name,
+        email: joinFormData.email,
+        phone: joinFormData.phone,
+        grade: joinFormData.grade,
+        subject: `${isArabic ? 'طلب الانضمام إلى نادي: ' : 'Demande d\'adhésion au club: '}${isArabic ? club.nameAr : club.nameFr}`,
+        message: joinFormData.message || (isArabic ? 'أرغب في الانضمام إلى هذا النادي.' : 'Je souhaite rejoindre ce club.'),
+        createdAt: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        status: 'pending',
+        replied: false
+      };
+      
+      await addDoc(collection(db, 'messages'), messageData);
+      
+      toast.success(isArabic ? 'تم إرسال طلبك بنجاح!' : 'Votre demande a été envoyée avec succès!');
+      setJoinFormData({ name: '', email: '', phone: '', grade: '', message: '' });
+      
+    } catch (error) {
+      console.error('Error submitting club join request:', error);
+      toast.error(isArabic ? 'حدث خطأ أثناء إرسال الطلب' : 'Erreur lors de l\'envoi de la demande');
+    }
   };
 
   if (loading) {

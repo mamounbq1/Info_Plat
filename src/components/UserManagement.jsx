@@ -14,6 +14,7 @@ import {
   BookOpenIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import { sendApprovalEmail, isEmailConfigured } from '../services/emailService';
 
 export default function UserManagement() {
   const { isArabic } = useLanguage();
@@ -78,15 +79,51 @@ export default function UserManagement() {
 
   const handleApproveUser = async (userId) => {
     try {
+      // Get user data before updating
+      const user = users.find(u => u.id === userId);
+      console.log('📧 [Approval] User found:', user);
+      console.log('📧 [Approval] EmailJS configured:', isEmailConfigured());
+      
+      // Update user status in Firestore
       await updateDoc(doc(db, 'users', userId), {
         approved: true,
         status: 'active',
         approvedAt: new Date().toISOString()
       });
-      toast.success(isArabic ? 'تمت الموافقة على المستخدم' : 'Utilisateur approuvé');
+      console.log('✅ [Approval] User status updated in Firestore');
+      
+      // Send approval email if configured
+      if (user && isEmailConfigured()) {
+        console.log('📧 [Approval] Sending email to:', user.email);
+        const emailResult = await sendApprovalEmail({
+          toEmail: user.email,
+          toName: user.fullName || user.email,
+          language: isArabic ? 'ar' : 'fr'
+        });
+        console.log('📧 [Approval] Email result:', emailResult);
+
+        if (emailResult.success) {
+          toast.success(
+            isArabic 
+              ? '✅ تمت الموافقة وإرسال إشعار بالبريد' 
+              : '✅ Utilisateur approuvé et notifié par email'
+          );
+        } else {
+          console.error('❌ [Approval] Email failed:', emailResult.message, emailResult.error);
+          toast.success(
+            isArabic 
+              ? '✅ تمت الموافقة (فشل إرسال البريد)' 
+              : '✅ Utilisateur approuvé (email non envoyé)'
+          );
+        }
+      } else {
+        console.warn('⚠️ [Approval] Email not sent - User:', !!user, 'Configured:', isEmailConfigured());
+        toast.success(isArabic ? 'تمت الموافقة على المستخدم' : 'Utilisateur approuvé');
+      }
+      
       fetchUsers();
     } catch (error) {
-      console.error('Error approving user:', error);
+      console.error('❌ [Approval] Error approving user:', error);
       toast.error(isArabic ? 'خطأ في الموافقة' : 'Erreur lors de l\'approbation');
     }
   };
@@ -140,11 +177,27 @@ export default function UserManagement() {
         if (action === 'delete') {
           await deleteDoc(doc(db, 'users', userId));
         } else if (action === 'approve') {
+          // Get user data for email
+          const user = users.find(u => u.id === userId);
+          console.log('📧 [Bulk Approval] Processing user:', user);
+          
+          // Update user status in Firestore
           await updateDoc(doc(db, 'users', userId), {
             approved: true,
             status: 'active',
             approvedAt: new Date().toISOString()
           });
+          
+          // Send approval email if configured
+          if (user && isEmailConfigured()) {
+            console.log('📧 [Bulk Approval] Sending email to:', user.email);
+            const emailResult = await sendApprovalEmail({
+              toEmail: user.email,
+              toName: user.fullName || user.email,
+              language: isArabic ? 'ar' : 'fr'
+            });
+            console.log('📧 [Bulk Approval] Email result for', user.email, ':', emailResult);
+          }
         } else if (action === 'reject') {
           await updateDoc(doc(db, 'users', userId), {
             approved: false,
@@ -156,7 +209,7 @@ export default function UserManagement() {
       
       const actionMessages = {
         delete: isArabic ? 'تم حذف المستخدمين' : 'Utilisateurs supprimés',
-        approve: isArabic ? 'تم الموافقة على المستخدمين' : 'Utilisateurs approuvés',
+        approve: isArabic ? 'تمت الموافقة على المستخدمين وإرسال الإشعارات' : 'Utilisateurs approuvés et notifiés',
         reject: isArabic ? 'تم رفض المستخدمين' : 'Utilisateurs refusés'
       };
       

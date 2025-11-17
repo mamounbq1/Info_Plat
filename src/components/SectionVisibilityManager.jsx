@@ -20,15 +20,17 @@ export default function SectionVisibilityManager({ isArabic }) {
   const [loading, setLoading] = useState(false);
   const [sections, setSections] = useState([
     { id: 'hero', nameFr: 'Hero Section', nameAr: 'القسم الرئيسي', enabled: true, order: 1 },
-    { id: 'announcements', nameFr: 'Annonces Urgentes', nameAr: 'الإعلانات العاجلة', enabled: true, order: 2 },
+    { id: 'news-ticker', nameFr: 'Barre Défilante Actualités', nameAr: 'شريط الأخبار المتحرك', enabled: true, order: 2 },
     { id: 'stats', nameFr: 'Statistiques', nameAr: 'الإحصائيات', enabled: true, order: 3 },
     { id: 'about', nameFr: 'À Propos', nameAr: 'عن الثانوية', enabled: true, order: 4 },
     { id: 'news', nameFr: 'Actualités', nameAr: 'الأخبار', enabled: true, order: 5 },
-    { id: 'clubs', nameFr: 'Clubs & Activités', nameAr: 'الأندية والأنشطة', enabled: true, order: 6 },
-    { id: 'gallery', nameFr: 'Galerie Photos', nameAr: 'معرض الصور', enabled: true, order: 7 },
-    { id: 'testimonials', nameFr: 'Témoignages', nameAr: 'الشهادات', enabled: true, order: 8 },
-    { id: 'quicklinks', nameFr: 'Liens Rapides', nameAr: 'روابط سريعة', enabled: true, order: 9 },
-    { id: 'contact', nameFr: 'Contact', nameAr: 'اتصل بنا', enabled: true, order: 10 },
+    { id: 'announcements', nameFr: 'Section Annonces', nameAr: 'قسم الإعلانات', enabled: true, order: 6 },
+    { id: 'events', nameFr: 'Section Événements', nameAr: 'قسم الأحداث', enabled: true, order: 7 },
+    { id: 'clubs', nameFr: 'Clubs & Activités', nameAr: 'الأندية والأنشطة', enabled: true, order: 8 },
+    { id: 'gallery', nameFr: 'Galerie Photos', nameAr: 'معرض الصور', enabled: true, order: 9 },
+    { id: 'testimonials', nameFr: 'Témoignages', nameAr: 'الشهادات', enabled: true, order: 10 },
+    { id: 'quicklinks', nameFr: 'Liens Rapides', nameAr: 'روابط سريعة', enabled: true, order: 11 },
+    { id: 'contact', nameFr: 'Contact', nameAr: 'اتصل بنا', enabled: true, order: 12 },
   ]);
 
   useEffect(() => {
@@ -41,12 +43,47 @@ export default function SectionVisibilityManager({ isArabic }) {
       const docRef = doc(db, 'homepage', 'section-visibility');
       const docSnap = await getDoc(docRef);
       
+      // Default sections template
+      const defaultSections = [
+        { id: 'hero', nameFr: 'Hero Section', nameAr: 'القسم الرئيسي', enabled: true, order: 1 },
+        { id: 'news-ticker', nameFr: 'Barre Défilante Actualités', nameAr: 'شريط الأخبار المتحرك', enabled: true, order: 2 },
+        { id: 'stats', nameFr: 'Statistiques', nameAr: 'الإحصائيات', enabled: true, order: 3 },
+        { id: 'about', nameFr: 'À Propos', nameAr: 'عن الثانوية', enabled: true, order: 4 },
+        { id: 'news', nameFr: 'Actualités', nameAr: 'الأخبار', enabled: true, order: 5 },
+        { id: 'announcements', nameFr: 'Section Annonces', nameAr: 'قسم الإعلانات', enabled: true, order: 6 },
+        { id: 'events', nameFr: 'Section Événements', nameAr: 'قسم الأحداث', enabled: true, order: 7 },
+        { id: 'clubs', nameFr: 'Clubs & Activités', nameAr: 'الأندية والأنشطة', enabled: true, order: 8 },
+        { id: 'gallery', nameFr: 'Galerie Photos', nameAr: 'معرض الصور', enabled: true, order: 9 },
+        { id: 'testimonials', nameFr: 'Témoignages', nameAr: 'الشهادات', enabled: true, order: 10 },
+        { id: 'quicklinks', nameFr: 'Liens Rapides', nameAr: 'روابط سريعة', enabled: true, order: 10 },
+        { id: 'contact', nameFr: 'Contact', nameAr: 'اتصل بنا', enabled: true, order: 11 },
+      ];
+      
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.sections && Array.isArray(data.sections)) {
-          setSections(data.sections);
+          // Merge: Keep existing sections but add any new ones from defaults
+          const existingSectionIds = data.sections.map(s => s.id);
+          const mergedSections = [...data.sections];
+          
+          // Add new sections that don't exist yet
+          defaultSections.forEach(defaultSection => {
+            if (!existingSectionIds.includes(defaultSection.id)) {
+              console.log(`➕ Adding new section: ${defaultSection.id}`);
+              mergedSections.push(defaultSection);
+            }
+          });
+          
+          // Sort by order
+          mergedSections.sort((a, b) => a.order - b.order);
+          
+          setSections(mergedSections);
+          return;
         }
       }
+      
+      // If no data exists, use defaults
+      setSections(defaultSections);
     } catch (error) {
       console.error('Error fetching section settings:', error);
       toast.error(isArabic ? 'خطأ في تحميل الإعدادات' : 'Erreur de chargement');
