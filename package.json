@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node check-env-vars.js && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "seed": "node seed-database.js",

@@ -9,8 +9,7 @@ test-*
 *.test.js
 *.test.jsx
 *.cjs
-check-*.cjs
-check-gallery-images.cjs
+check-*
 diagnose-*
 fix-*
 seed-*
