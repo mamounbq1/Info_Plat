@@ -41,6 +41,7 @@ import FixClassesLevelBranch from './pages/FixClassesLevelBranch';
 import DiagnoseClassesStructure from './pages/DiagnoseClassesStructure';
 import FixExistingStudents from './pages/FixExistingStudents';
 import DiagnosticUser from './pages/DiagnosticUser';
+import EnvCheck from './pages/EnvCheck';
 
 // Public Pages
 import AboutPage from './pages/AboutPage';
@@ -217,6 +218,9 @@ function App() {
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />
+              
+              {/* Environment Check Diagnostic */}
+              <Route path="/env-check" element={<EnvCheck />} />
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/sitemap" element={<SitemapPage />} />
               <Route path="/search" element={<SearchPage />} />
